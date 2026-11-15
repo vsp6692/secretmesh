@@ -1,0 +1,87 @@
+SHELL := /bin/bash
+COMPOSE := docker compose -f deployments/docker/compose.yaml
+GOLANGCI_LINT_VERSION := v2.15.0
+GOVULNCHECK_VERSION := v1.9.0
+GITLEAKS_VERSION := v8.30.1
+
+-include .env
+export
+
+.DEFAULT_GOAL := help
+
+.PHONY: help
+help: ## Show targets
+	@grep -hE '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
+
+.env:
+	cp .env.example .env
+
+## ---- Development ----
+
+.PHONY: dev
+dev: .env deps-up migrate ## Start dependencies, migrate, run API and web
+	@$(MAKE) -j2 api web
+
+.PHONY: deps-up
+deps-up: ## Start Postgres, Keycloak, the AWS emulator and the mail catcher
+	$(COMPOSE) up -d --wait postgres
+	$(COMPOSE) up -d keycloak moto mailpit
+
+.PHONY: deps-down
+deps-down: ## Stop dependencies (keeps data)
+	$(COMPOSE) down
+
+.PHONY: deps-reset
+deps-reset: ## Stop dependencies and delete their data
+	$(COMPOSE) down -v
+
+.PHONY: migrate
+migrate: .env ## Apply database migrations
+	go run ./apps/api migrate
+
+.PHONY: api
+api: ## Run the API
+	go run ./apps/api serve
+
+.PHONY: web
+web: apps/web/node_modules ## Run the web app
+	cd apps/web && npm run dev
+
+apps/web/node_modules: apps/web/package-lock.json
+	cd apps/web && npm ci
+	@touch $@
+
+## ---- Build & test ----
+
+.PHONY: generate
+generate: ## Regenerate code from the OpenAPI contract
+	go generate ./...
+
+.PHONY: build
+build: ## Build API binary and web app
+	CGO_ENABLED=0 go build -trimpath -o bin/secretmesh-api ./apps/api
+	cd apps/web && npm run build
+
+.PHONY: test
+test: ## Unit tests (integration tests skip without a database or AWS emulator)
+	SECRETMESH_TEST_DATABASE_URL= SECRETMESH_TEST_AWS_ENDPOINT= go test -race ./...
+
+.PHONY: test-integration
+test-integration: ## All tests against SECRETMESH_TEST_DATABASE_URL and SECRETMESH_TEST_AWS_ENDPOINT
+	@test -n "$$SECRETMESH_TEST_DATABASE_URL" || (echo "SECRETMESH_TEST_DATABASE_URL is not set" && exit 1)
+	go test -race -count=1 ./...
+
+.PHONY: lint
+lint: ## Go and web linters
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION) run
+	cd apps/web && npm run lint && npx tsc --noEmit
+
+.PHONY: security
+security: ## Secret scan and Go vulnerability check
+	go run github.com/zricethezav/gitleaks/v8@$(GITLEAKS_VERSION) dir . --no-banner --redact --config .gitleaks.toml
+	go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION) ./...
+
+.PHONY: docker-build
+docker-build: ## Build container images
+	docker build -f deployments/docker/api.Dockerfile -t secretmesh/api:dev .
+	docker build -f deployments/docker/web.Dockerfile -t secretmesh/web:dev .

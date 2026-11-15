@@ -1,0 +1,28 @@
+version: "2"
+
+linters:
+  enable:
+    - bodyclose
+    - errorlint
+    - gosec
+    - misspell
+    - noctx
+    - rowserrcheck
+    - sqlclosecheck
+    - unconvert
+  exclusions:
+    generated: lax
+    rules:
+      - path: _test\.go
+        linters: [gosec, noctx, bodyclose, errcheck]
+      - path: oidctest/
+        linters: [gosec, noctx]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/secretmesh/secretmesh

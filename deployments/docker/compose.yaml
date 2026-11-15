@@ -1,0 +1,54 @@
+# Local development dependencies. Not for production use: all credentials here
+# are fixed development values.
+#
+#   docker compose -f deployments/docker/compose.yaml up -d   # postgres, keycloak, moto, mailpit
+name: secretmesh
+
+services:
+  postgres:
+    image: postgres:17.11-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      # 5433 avoids clashing with a locally installed PostgreSQL.
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d secretmesh"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.2
+    command: ["start-dev", "--import-realm", "--http-port=8081", "--health-enabled=true"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # Browser and API both reach Keycloak at localhost:8081, so the token
+      # issuer matches SECRETMESH_OIDC_ISSUER.
+      KC_HOSTNAME: http://localhost:8081
+    ports:
+      - "127.0.0.1:8081:8081"
+    volumes:
+      - ./keycloak/secretmesh-realm.json:/opt/keycloak/data/import/secretmesh-realm.json:ro
+
+  # AWS emulator (Secrets Manager, STS, KMS, S3 Object Lock) for development
+  # and integration tests. Accepts any credentials; never expose it.
+  moto:
+    image: motoserver/moto:5.2.5
+    ports:
+      - "127.0.0.1:5050:5000"
+
+  # Catches notification email (SMTP on 1025, web UI on http://localhost:8025).
+  mailpit:
+    image: axllent/mailpit:v1.29
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+
+volumes:
+  postgres-data:

@@ -1,0 +1,27 @@
+# Extends the default ruleset. Only fixed, documented development credentials
+# are allowlisted; anything else is a finding.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "secretmesh-api-token"
+description = "SecretMesh API token"
+regex = '''\bsmt_[A-Za-z0-9_-]{43}\b'''
+keywords = ["smt_"]
+
+[[allowlists]]
+description = "Local development fixtures (see deployments/docker and .env.example)"
+paths = [
+  '''^deployments/docker/keycloak/secretmesh-realm\.json$''',
+  '''^deployments/docker/postgres/init\.sql$''',
+  '''^deployments/docker/compose\.yaml$''',
+  '''^\.env\.example$''',
+]
+
+[[allowlists]]
+description = "Untracked build output and dependencies (only present in local `gitleaks dir` scans)"
+paths = [
+  '''(^|/)node_modules/''',
+  '''(^|/)\.next/''',
+  '''^bin/''',
+]

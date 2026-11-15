@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  S3 bucket with Object Lock for SecretMesh audit exports, and an optional
+  write-only role for the exporter (ADR-0010).
+
+Parameters:
+  SecretMeshPrincipalArn:
+    Type: String
+    Description: ARN of the IAM role SecretMesh runs as.
+  BucketName:
+    Type: String
+  RetentionDays:
+    Type: Number
+    Default: 365
+    Description: Default retention; SecretMesh also sets it on every object.
+  Mode:
+    Type: String
+    Default: COMPLIANCE
+    AllowedValues: [COMPLIANCE, GOVERNANCE]
+
+Resources:
+  AuditBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Ref BucketName
+      ObjectLockEnabled: true
+      ObjectLockConfiguration:
+        ObjectLockEnabled: Enabled
+        Rule:
+          DefaultRetention:
+            Mode: !Ref Mode
+            Days: !Ref RetentionDays
+      VersioningConfiguration: { Status: Enabled }
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: aws:kms }
+            BucketKeyEnabled: true
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+
+  AuditBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AuditBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: TLSOnly
+            Effect: Deny
+            Principal: "*"
+            Action: s3:*
+            Resource: [!GetAtt AuditBucket.Arn, !Sub "${AuditBucket.Arn}/*"]
+            Condition: { Bool: { "aws:SecureTransport": "false" } }
+
+  ExportRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { AWS: !Ref SecretMeshPrincipalArn }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: secretmesh-audit-write
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Write-only: the exporter cannot read, delete or shorten retention.
+              - Effect: Allow
+                Action: [s3:PutObject, s3:PutObjectRetention]
+                Resource: !Sub "${AuditBucket.Arn}/*"
+              - Effect: Allow
+                Action: s3:GetBucketObjectLockConfiguration
+                Resource: !GetAtt AuditBucket.Arn
+
+Outputs:
+  Bucket:
+    Value: !Ref AuditBucket
+  ExportRoleArn:
+    Description: SECRETMESH_AUDIT_EXPORT_ROLE_ARN
+    Value: !GetAtt ExportRole.Arn
