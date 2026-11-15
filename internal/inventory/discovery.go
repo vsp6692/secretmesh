@@ -208,6 +208,51 @@ func (d *Discovery) recordFailure(ctx context.Context, org, connID uuid.UUID, ca
 	d.logger.WarnContext(ctx, "discovery failed", "connection_id", connID, "error", cause)
 }
 
+// StagingGrace is how long a staging resource is left alone before it can be
+// swept, so a request that is still being created is never mistaken for an
+// orphan.
+const StagingGrace = time.Hour
+
+// SweepStaging removes staging resources in the provider that no live change
+// request owns. It returns how many it removed.
+func (d *Discovery) SweepStaging(ctx context.Context, org, connID uuid.UUID, grace time.Duration) (int, error) {
+	ctx = postgres.WithScope(ctx, postgres.Scope{OrganizationID: org})
+	var conn Connection
+	err := postgres.Tx(ctx, d.pool, func(tx pgx.Tx) error {
+		var err error
+		conn, err = ConnectionTx(ctx, tx, org, connID)
+		return err
+	})
+	if err != nil {
+		return 0, err
+	}
+	store, err := d.registry.Store(connectors.Connection{ID: conn.ID, OrganizationID: org, Provider: conn.Provider, Config: conn.Config})
+	if err != nil {
+		return 0, err
+	}
+	sweeper, ok := store.(connectors.StagingSweeper)
+	if !ok {
+		return 0, nil
+	}
+	live := func(id uuid.UUID) (bool, error) {
+		var isLive bool
+		err := postgres.Tx(ctx, d.pool, func(tx pgx.Tx) error {
+			err := tx.QueryRow(ctx, `SELECT status IN ('pending', 'approved', 'executing') FROM change_requests
+				WHERE organization_id = $1 AND id = $2`, org, id).Scan(&isLive)
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil
+			}
+			return err
+		})
+		return isLive, err
+	}
+	n, err := sweeper.SweepStaging(ctx, time.Now().Add(-grace), live)
+	if n > 0 {
+		d.logger.InfoContext(ctx, "removed orphaned staging resources", "connection_id", connID, "count", n)
+	}
+	return n, err
+}
+
 // SyncDue syncs every active connection not synced within interval.
 func (d *Discovery) SyncDue(ctx context.Context, interval time.Duration) error {
 	rows, err := d.pool.Query(ctx, `SELECT organization_id, connection_id FROM secretmesh_connections_to_sync($1)`, interval)
@@ -226,6 +271,10 @@ func (d *Discovery) SyncDue(ctx context.Context, interval time.Duration) error {
 	for _, it := range items {
 		if _, err := d.Sync(ctx, it.org, it.conn); err != nil && !errors.Is(err, ErrDiscoveryUnsupported) {
 			errs = append(errs, fmt.Errorf("sync %s: %w", it.conn, err))
+			continue
+		}
+		if _, err := d.SweepStaging(ctx, it.org, it.conn, StagingGrace); err != nil {
+			errs = append(errs, fmt.Errorf("sweep staging %s: %w", it.conn, err))
 		}
 	}
 	return errors.Join(errs...)

@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/secretmesh/secretmesh/internal/httpapi"
 	"github.com/secretmesh/secretmesh/internal/identity/oidctest"
+	"github.com/secretmesh/secretmesh/internal/inventory"
 )
 
 // TestAWSFlow drives the AWS connector through the API against the emulator
@@ -113,6 +115,44 @@ func TestAWSFlow(t *testing.T) {
 			t.Fatalf("rejected version %s still pending", v)
 		}
 	}
+
+	t.Run("orphaned staging is swept", func(t *testing.T) {
+		// A pending create keeps its shadow secret; once the request is
+		// rejected and the discard job never ran, the sweeper removes it.
+		cr := g.mustSubmit(t, g.dev, map[string]any{"operation": "create", "connection_id": conn.Id, "environment_id": g.prod,
+			"name": prefix + "swept", "classification": "internal", "value": "aws-orphan-5e71", "reason": "test"})
+		shadow := "secretmesh-staging/" + cr.Id.String()
+		exists := func() bool {
+			d, err := raw.DescribeSecret(ctx, &sm.DescribeSecretInput{SecretId: aws.String(shadow)})
+			return err == nil && d.DeletedDate == nil
+		}
+		if !exists() {
+			t.Fatal("no shadow secret for a pending create")
+		}
+		// The emulator is shared with other tests, so use a short grace
+		// period (not zero) that never catches a secret mid-promotion.
+		const grace = 2 * time.Second
+		time.Sleep(grace + 500*time.Millisecond)
+		disc := inventory.NewDiscovery(g.db.App, g.registry, g.logger)
+		if _, err := disc.SweepStaging(ctx, g.acme.ID, conn.Id, grace); err != nil {
+			t.Fatal(err)
+		}
+		if !exists() {
+			t.Fatal("sweeper removed the staging secret of a pending request")
+		}
+		if r := g.decide(t, g.ap1, cr.Id, "reject", cr.BindingHash); r.Status != http.StatusOK {
+			t.Fatalf("reject: %d %s", r.Status, r.Body)
+		}
+		if !exists() {
+			t.Fatal("staging secret vanished without the discard job")
+		}
+		if _, err := disc.SweepStaging(ctx, g.acme.ID, conn.Id, grace); err != nil {
+			t.Fatal(err)
+		}
+		if exists() {
+			t.Fatal("sweeper left the staging secret of a rejected request")
+		}
+	})
 
 	t.Run("versions and reveal", func(t *testing.T) {
 		var vs struct{ Versions []httpapi.SecretVersion }

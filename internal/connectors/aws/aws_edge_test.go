@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	sm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -236,5 +237,68 @@ func TestProviderIdentity(t *testing.T) {
 	a, b := smaws.NewExternalID(), smaws.NewExternalID()
 	if a == b || len(a) < 24 {
 		t.Fatalf("external IDs must be unique and unguessable: %q %q", a, b)
+	}
+}
+
+// The sweeper removes only staging secrets whose request is no longer live,
+// and never anything it cannot positively identify as its own.
+func TestSweepStaging(t *testing.T) {
+	store, raw := env(t)
+	ctx := context.Background()
+	sweeper, ok := store.(connectors.StagingSweeper)
+	if !ok {
+		t.Fatal("the AWS store does not implement StagingSweeper")
+	}
+
+	stage := func() (uuid.UUID, connectors.Staged) {
+		id := uuid.New()
+		st, err := store.Stage(ctx, connectors.Target{Name: "app/" + id.String()}, id, sensitive.FromString("pending-value"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return id, st
+	}
+	orphan, orphanRef := stage()
+	liveID, liveRef := stage()
+
+	// Same name shape but not created by SecretMesh: no staging tag.
+	lookalike := uuid.New()
+	if _, err := raw.CreateSecret(ctx, &sm.CreateSecretInput{
+		Name: aws.String(smaws.StagingPrefix + lookalike.String()), SecretString: aws.String("someone else's"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Other tests share the emulator: only ever condemn this test's orphan.
+	live := func(id uuid.UUID) (bool, error) { return id != orphan, nil }
+
+	// Too recent: inside the grace period nothing is touched.
+	if n, err := sweeper.SweepStaging(ctx, time.Now().Add(-time.Hour), live); err != nil || n != 0 {
+		t.Fatalf("sweep inside the grace period removed %d (err %v)", n, err)
+	}
+
+	n, err := sweeper.SweepStaging(ctx, time.Now().Add(time.Minute), live)
+	if err != nil || n != 1 {
+		t.Fatalf("sweep removed %d, want 1 (err %v)", n, err)
+	}
+	if _, err := store.ReadStaged(ctx, orphanRef); !errors.Is(err, connectors.ErrNotFound) {
+		t.Errorf("orphan still readable after sweep: %v", err)
+	}
+	if v, err := store.ReadStaged(ctx, liveRef); err != nil {
+		t.Errorf("live staging was removed: %v", err)
+	} else {
+		v.Wipe()
+	}
+	if _, err := raw.GetSecretValue(ctx, &sm.GetSecretValueInput{SecretId: aws.String(smaws.StagingPrefix + lookalike.String())}); err != nil {
+		t.Errorf("untagged look-alike secret was removed: %v", err)
+	}
+
+	// Idempotent, and a live request stays safe once it is finished only after the caller says so.
+	if n, err := sweeper.SweepStaging(ctx, time.Now().Add(time.Minute), live); err != nil || n != 0 {
+		t.Errorf("second sweep removed %d (err %v)", n, err)
+	}
+	live = func(id uuid.UUID) (bool, error) { return id != liveID, nil }
+	if n, err := sweeper.SweepStaging(ctx, time.Now().Add(time.Minute), live); err != nil || n != 1 {
+		t.Errorf("sweep after the request finished removed %d, want 1 (err %v)", n, err)
 	}
 }

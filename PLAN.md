@@ -92,7 +92,11 @@ Deferred: S3 Object Lock export, break-glass, KMS keyring (M3); teams and classi
 - Web UI: secrets inventory, secret detail (versions, reveal with 30-second auto-hide), change requests (propose, approve/reject showing the binding hash, cancel, break-glass filter), audit log with verification, settings (connections, environments, role bindings).
 - Tests: connector, KMS and export against Moto; HTTP flow (shadow create, labelled update, rejection, reveal checks, discovery) and break-glass, with mutation checks on the reveal and break-glass gates. Dev run with Keycloak + Moto: staging create/update/reveal succeeded, production change denied for lack of MFA as designed, no values in the database or logs.
 
-Open before tagging v0.1.0-alpha: run the slice against a real AWS test account (IAM/ExternalId enforcement, Object Lock, KMS); browser test of the new UI; sweeper for orphaned `secretmesh-staging/` secrets; CI run on GitHub.
+Open before tagging v0.1.0-alpha: run the slice against a real AWS test account (IAM/ExternalId enforcement, Object Lock, KMS); browser test of the new UI; CI run on GitHub. Done since: the sweeper for orphaned `secretmesh-staging/` secrets (see "Sweeper" below).
+
+### Sweeper
+
+Discovery now removes shadow staging secrets that no live change request owns (`connectors.StagingSweeper`, run after each periodic sync). It only touches secrets with the `secretmesh-staging/<request id>` name and the `secretmesh:staging` tag, and only after a one-hour grace period, so a request still being created is never swept. Staged versions labelled `SECRETMESH_PENDING` on existing secrets are not swept yet.
 
 ## M4 delivered
 
