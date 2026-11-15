@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -18,14 +19,16 @@ import (
 )
 
 // env returns a store connected through AssumeRole to the emulator at
-// SECRETMESH_TEST_AWS_ENDPOINT, and a raw client for assertions.
+// SECRETMESH_TEST_AWS_ENDPOINT, and a raw client for assertions. The access
+// key equals the account ID of the role: LocalStack derives the account from the
+// key, so the raw client then sees the same secrets as the assumed role.
 func env(t *testing.T) (connectors.SecretStore, *sm.Client) {
 	t.Helper()
 	endpoint := os.Getenv("SECRETMESH_TEST_AWS_ENDPOINT")
 	if endpoint == "" {
 		t.Skip("SECRETMESH_TEST_AWS_ENDPOINT not set")
 	}
-	t.Setenv("AWS_ACCESS_KEY_ID", "test")
+	t.Setenv("AWS_ACCESS_KEY_ID", "123456789012")
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "test")
 	t.Setenv("AWS_REGION", "us-east-1")
 	p, err := smaws.New(context.Background(), endpoint)
@@ -41,7 +44,7 @@ func env(t *testing.T) (connectors.SecretStore, *sm.Client) {
 	}
 	raw := sm.New(sm.Options{
 		Region: "us-east-1", BaseEndpoint: aws.String(endpoint),
-		Credentials: credentials.NewStaticCredentialsProvider("test", "test", ""),
+		Credentials: credentials.NewStaticCredentialsProvider("123456789012", "test", ""),
 	})
 	return store, raw
 }
@@ -257,16 +260,6 @@ func TestNativeRotation(t *testing.T) {
 	if st, _, err := rot.RotationState(ctx, target, key); err != nil || st != connectors.RotationNotStarted {
 		t.Fatalf("state before start: %v %v", st, err)
 	}
-	res, err := rot.StartRotation(ctx, target, key)
-	if err != nil || res.VersionID != key.String() {
-		t.Fatalf("start: %+v %v", res, err)
-	}
-	// Real AWS reports in progress until the rotation function finishes;
-	// Moto completes immediately.
-	st, ver, err := rot.RotationState(ctx, target, key)
-	if err != nil || (st != connectors.RotationInProgress && st != connectors.RotationDone) || ver != key.String() {
-		t.Fatalf("state after start: %v %q %v", st, ver, err)
-	}
 	versions := func() int {
 		d, err := raw.DescribeSecret(ctx, &sm.DescribeSecretInput{SecretId: aws.String(name)})
 		if err != nil {
@@ -274,10 +267,34 @@ func TestNativeRotation(t *testing.T) {
 		}
 		return len(d.VersionIdsToStages)
 	}
-	n := versions()
-	// Starting again with the same key does not start a second rotation.
-	if again, err := rot.StartRotation(ctx, target, key); err != nil || again.VersionID != key.String() || versions() != n {
-		t.Fatalf("idempotent start: %+v %v", again, err)
+	before := versions()
+	res, err := rot.StartRotation(ctx, target, key)
+	if err != nil && strings.Contains(err.Error(), "Lambda rotation function") {
+		// AWS and LocalStack refuse to rotate a secret that has no rotation
+		// function (running one needs the Lambda service); Moto does not.
+		// The connector must fail without side effects.
+		if res.VersionID != "" || versions() != before {
+			t.Fatalf("refused rotation left traces: %+v, versions %d -> %d", res, before, versions())
+		}
+		if st, _, _ := rot.RotationState(ctx, target, key); st != connectors.RotationNotStarted {
+			t.Fatalf("state after refused start: %v", st)
+		}
+		t.Logf("emulator enforces the rotation function requirement: %v", err)
+	} else {
+		if err != nil || res.VersionID != key.String() {
+			t.Fatalf("start: %+v %v", res, err)
+		}
+		// Real AWS reports in progress until the rotation function finishes;
+		// Moto completes immediately.
+		st, ver, err := rot.RotationState(ctx, target, key)
+		if err != nil || (st != connectors.RotationInProgress && st != connectors.RotationDone) || ver != key.String() {
+			t.Fatalf("state after start: %v %q %v", st, ver, err)
+		}
+		n := versions()
+		// Starting again with the same key does not start a second rotation.
+		if again, err := rot.StartRotation(ctx, target, key); err != nil || again.VersionID != key.String() || versions() != n {
+			t.Fatalf("idempotent start: %+v %v", again, err)
+		}
 	}
 
 	// Abandoning removes AWSPENDING from a stuck attempt.
@@ -292,8 +309,19 @@ func TestNativeRotation(t *testing.T) {
 	if err := rot.AbandonRotation(ctx, target, stuck); err != nil {
 		t.Fatal(err)
 	}
-	if st, _, _ := rot.RotationState(ctx, target, stuck); st != connectors.RotationFailed {
+	// Moto keeps the unlabelled version (failed); AWS and LocalStack drop it
+	// (not started). Either way the attempt is over and nothing is pending.
+	if st, _, _ := rot.RotationState(ctx, target, stuck); st != connectors.RotationFailed && st != connectors.RotationNotStarted {
 		t.Fatalf("state after abandoning: %v", st)
+	}
+	if d, err := raw.DescribeSecret(ctx, &sm.DescribeSecretInput{SecretId: aws.String(name)}); err != nil {
+		t.Fatal(err)
+	} else {
+		for id, stages := range d.VersionIdsToStages {
+			if slices.Contains(stages, "AWSPENDING") {
+				t.Fatalf("version %s is still AWSPENDING after abandoning", id)
+			}
+		}
 	}
 	if err := rot.AbandonRotation(ctx, target, stuck); err != nil {
 		t.Fatalf("abandon is not idempotent: %v", err)

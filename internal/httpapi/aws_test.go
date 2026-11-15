@@ -28,7 +28,7 @@ func TestAWSFlow(t *testing.T) {
 	g := newGov(t)
 	ctx := context.Background()
 	raw := sm.New(sm.Options{Region: "us-east-1", BaseEndpoint: aws.String(endpoint),
-		Credentials: credentials.NewStaticCredentialsProvider("test", "test", "")})
+		Credentials: credentials.NewStaticCredentialsProvider("123456789012", "test", "")})
 	current := func(name string) string {
 		t.Helper()
 		out, err := raw.GetSecretValue(ctx, &sm.GetSecretValueInput{SecretId: aws.String(name), VersionStage: aws.String("AWSCURRENT")})
