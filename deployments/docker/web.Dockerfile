@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:24-alpine AS build
+FROM node:25-alpine AS build
 WORKDIR /app
 COPY apps/web/package.json apps/web/package-lock.json ./
 RUN npm ci
@@ -9,7 +9,7 @@ ARG SECRETMESH_API_URL=http://secretmesh-api:8080
 ENV SECRETMESH_API_URL=${SECRETMESH_API_URL} NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-FROM node:24-alpine
+FROM node:25-alpine
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 COPY --from=build --chown=node:node /app/.next/standalone ./
