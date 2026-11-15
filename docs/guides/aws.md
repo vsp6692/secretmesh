@@ -27,7 +27,7 @@ SecretMesh uses the default AWS credential chain: an EKS service account (IRSA o
    - `SecretNamePrefix` limits which secrets SecretMesh can manage. `secretmesh-staging/*` is always included because creates are staged there.
    - `KmsKeyArns` grants decrypt and encrypt (through Secrets Manager only) on customer-managed keys.
    - Customize the role name with `RoleName`, and keep `role_arn` in the connection matching it.
-3. Click **Sync** on the connection, or wait up to 15 minutes. An access-denied error appears on the connection as "check the role's trust policy, ExternalId and permissions".
+3. Click **Sync** on the connection, or wait up to 15 minutes. An access-denied error appears on the connection as "check the connection's identity, trust setup, ExternalId and permissions".
 
 ## 3. Placing discovered secrets
 

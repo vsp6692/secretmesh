@@ -187,7 +187,7 @@ func (d *Discovery) recordFailure(ctx context.Context, org, connID uuid.UUID, ca
 	msg := "provider error"
 	switch {
 	case errors.Is(cause, connectors.ErrAccessDenied):
-		msg = "access denied: check the role's trust policy, ExternalId and permissions"
+		msg = "access denied: check the connection's identity, trust setup, ExternalId and permissions"
 	case errors.Is(cause, connectors.ErrTransient):
 		msg = "provider temporarily unavailable"
 	}

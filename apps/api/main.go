@@ -32,7 +32,9 @@ import (
 	"github.com/secretmesh/secretmesh/internal/config"
 	"github.com/secretmesh/secretmesh/internal/connectors"
 	awsconn "github.com/secretmesh/secretmesh/internal/connectors/aws"
+	azureconn "github.com/secretmesh/secretmesh/internal/connectors/azure"
 	"github.com/secretmesh/secretmesh/internal/connectors/fake"
+	gcpconn "github.com/secretmesh/secretmesh/internal/connectors/gcp"
 	"github.com/secretmesh/secretmesh/internal/execution"
 	"github.com/secretmesh/secretmesh/internal/httpapi"
 	"github.com/secretmesh/secretmesh/internal/identity"
@@ -228,8 +230,13 @@ type governance struct {
 // newGovernance builds the approval, execution and job components shared by
 // serve and worker.
 func newGovernance(ctx context.Context, pool *pgxpool.Pool, cfg config.Governance, logger *slog.Logger, work bool) (*governance, error) {
-	if cfg.AWSEndpoint != "" {
-		logger.WarnContext(ctx, "AWS endpoint override set; use it only with local emulators", "endpoint", cfg.AWSEndpoint)
+	for name, endpoint := range map[string]string{"AWS": cfg.AWSEndpoint, "Azure": cfg.AzureEndpoint, "GCP": cfg.GCPEndpoint, "GCP IAM": cfg.GCPIAMEndpoint} {
+		if endpoint != "" {
+			logger.WarnContext(ctx, name+" endpoint override set; use it only with local emulators", "endpoint", endpoint)
+		}
+	}
+	if cfg.GCPAllowServiceAccountKeys {
+		logger.WarnContext(ctx, "service account keys are accepted as SecretMesh's GCP identity; use workload identity in production")
 	}
 	keyring, err := newKeyring(ctx, cfg)
 	if err != nil {
@@ -246,6 +253,22 @@ func newGovernance(ctx context.Context, pool *pgxpool.Pool, cfg config.Governanc
 			return nil, err
 		}
 		registry.Register(awsconn.ProviderName, p.Factory)
+	}
+	if cfg.EnableAzureConnector {
+		p, err := azureconn.New(ctx, azureconn.Options{Endpoint: cfg.AzureEndpoint})
+		if err != nil {
+			return nil, err
+		}
+		registry.Register(azureconn.ProviderName, p.Factory)
+	}
+	if cfg.EnableGCPConnector {
+		p, err := gcpconn.New(ctx, gcpconn.Options{
+			Endpoint: cfg.GCPEndpoint, IAMEndpoint: cfg.GCPIAMEndpoint, AllowServiceAccountKeys: cfg.GCPAllowServiceAccountKeys,
+		})
+		if err != nil {
+			return nil, err
+		}
+		registry.Register(gcpconn.ProviderName, p.Factory)
 	}
 	var exporter *auditexport.Exporter
 	if cfg.AuditExport.Bucket != "" {

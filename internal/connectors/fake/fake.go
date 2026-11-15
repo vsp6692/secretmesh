@@ -230,6 +230,9 @@ func (s *store) Promote(_ context.Context, t connectors.Target, st connectors.St
 			ref = Ref(s.conn, t.Name)
 		}
 		sec, ok := s.v.secrets[ref]
+		if ok && !sec.deleted && t.ProviderRef == "" {
+			return connectors.Result{}, connectors.ErrConflict // never overwrite on create
+		}
 		if !ok || sec.deleted {
 			if t.ProviderRef != "" {
 				return connectors.Result{}, connectors.ErrNotFound

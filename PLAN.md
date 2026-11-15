@@ -53,7 +53,7 @@ Promotion flow:
 | M2 Security gates & audit ✅ (verified locally 2026-11-12; immutable export, break-glass and KMS keyring moved to M3) | Hash-chained audit + signed checkpoints + S3 Object Lock export; RBAC/ABAC; approval state machine; OPA at worker; journal + reconciler | 5 wks | Full gate chain on a fake connector; bypass/replay/tamper tests |
 | M3 AWS vertical slice ✅ (verified locally against Moto 2026-11-12; **real AWS account not yet tested**, so v0.1.0-alpha is not tagged) | KMS keyring, audit export to S3 Object Lock, break-glass, AssumeRole + ExternalId, `SecretStore` interface + capabilities, discovery, CRUD via ADR-003 staging, reveal (step-up, `no-store`), UI: inventory/detail/approvals/audit | 6 wks | Blueprint §20 Deliverable 3 against an emulator (Moto) + real test account → **v0.1.0-alpha** |
 | M4 Rotation & notifications ✅ (verified locally 2026-11-12; native AWS rotation completion not tested against real AWS) | Scheduler on job queue, plugin contract, AWS-native + manual plugins, reminders/escalation, SMTP + Slack | 5 wks | Worker killed mid-rotation recovers |
-| M5 Azure & GCP | Adapters via workload identity, shadow-staging, connector contract test suite | 6 wks | Same CRUD/approval E2E on all three clouds |
+| M5 Azure & GCP ✅ (built 2026-11-15; **verified against in-process fakes only, no live Azure or GCP account yet**) | Adapters via workload identity, shadow-staging, connector contract test suite | 6 wks | Same CRUD/approval E2E on all three clouds |
 | M6 Posture & release | ≥10 posture rules, scoring, CLI, Helm chart, SBOM/Cosign/SLSA, docs, external pentest | 5 wks | **v0.1.0** self-hosted release |
 
 Total ≈ 33 weeks (~8 months). Alpha after M3 (~17 weeks).
@@ -97,6 +97,13 @@ Open before tagging v0.1.0-alpha: run the slice against a real AWS test account 
 ### Sweeper
 
 Discovery now removes shadow staging secrets that no live change request owns (`connectors.StagingSweeper`, run after each periodic sync). It only touches secrets with the `secretmesh-staging/<request id>` name and the `secretmesh:staging` tag, and only after a one-hour grace period, so a request still being created is never swept. Staged versions labelled `SECRETMESH_PENDING` on existing secrets are not swept yet.
+
+## M5 delivered
+
+- Azure Key Vault and Google Cloud Secret Manager connectors (`internal/connectors/azure`, `internal/connectors/gcp`), hand-written REST, keyless identity (Azure workload/managed identity; GCP ADC plus service-account impersonation), marker-secret ownership proof, shadow staging with a sweeper, reversible delete. Design in ADR-0012; guides `docs/guides/azure.md` and `docs/guides/gcp.md`; role templates in `deployments/azure` and `deployments/gcp`.
+- `internal/connectors/contract`: one behavioural suite run by the fake, AWS (LocalStack and Moto), Azure and GCP connectors. It found and fixed an AWS error-mapping bug.
+- Connection creation for all three clouds (generated external ID, strict validation, no credentials accepted); connection form in the UI; both providers off by default.
+- Open before calling M5 done: run each connector against a live account (the fakes are written from the documented APIs and can differ); the full approval flow over HTTP currently runs on the fake and AWS providers only, with Azure and GCP covered by the contract suite.
 
 ## M4 delivered
 

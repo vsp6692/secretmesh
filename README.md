@@ -6,7 +6,7 @@ A personal project by [@vsp6692](https://github.com/vsp6692), built and maintain
 
 SecretMesh is a control plane: it manages inventory, policies, approvals, rotation and audit. **Secret values never leave your own cloud vaults and are never persisted by SecretMesh.** Its database holds only metadata.
 
-> Status: personal project in early development (milestone M4, rotation and notifications; AWS tested against an emulator only). Not ready for production use. See [PLAN.md](PLAN.md).
+> Status: personal project in early development (milestone M5: AWS, Azure and Google Cloud connectors; AWS tested against emulators, Azure and GCP against in-process fakes only). Not ready for production use. See [PLAN.md](PLAN.md).
 
 ## Repository layout
 
@@ -22,7 +22,7 @@ SecretMesh is a control plane: it manages inventory, policies, approvals, rotati
 | `migrations/` | PostgreSQL migrations (goose, embedded in the binary) |
 | `deployments/docker` | Local dependencies (Postgres, Keycloak, Moto AWS emulator) and Dockerfiles |
 | `docs/adr` | Architecture decision records |
-| `docs/guides` | Operator guides (identity provider, AWS) |
+| `docs/guides` | Operator guides (identity provider, AWS, Azure, Google Cloud) |
 
 ## Development
 
@@ -72,6 +72,7 @@ See [`deployments/docker/postgres/init.sql`](deployments/docker/postgres/init.sq
 - Creating tokens and changing security settings requires a sign-in within the last 5 minutes (step-up). Organizations can require MFA.
 - Identity provider setup (Keycloak, Google, Entra ID): [docs/guides/oidc.md](docs/guides/oidc.md).
 - AWS connector, KMS keyring and audit export: [docs/guides/aws.md](docs/guides/aws.md).
+- Azure Key Vault connector: [docs/guides/azure.md](docs/guides/azure.md). Google Cloud Secret Manager connector: [docs/guides/gcp.md](docs/guides/gcp.md).
 - Rotation policies, owners and notification channels: [docs/guides/rotation-and-notifications.md](docs/guides/rotation-and-notifications.md).
 
 ### Changes, approvals and audit

@@ -36,7 +36,10 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      # Keyed on the pull request's author account, which cannot be forged by
+      # commit metadata. Dependabot cannot sign off; a maintainer merges it.
       - name: Every commit has a Signed-off-by line from its author
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}

@@ -83,7 +83,7 @@ jobs:
     env:
       SECRETMESH_TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
       SECRETMESH_TEST_AWS_ENDPOINT: ${{ matrix.endpoint }}
-      COVER_MIN: "70" # keep in sync with COVER_MIN in the Makefile
+      COVER_MIN: "74" # keep in sync with COVER_MIN in the Makefile
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

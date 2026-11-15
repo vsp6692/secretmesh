@@ -717,8 +717,14 @@ type CreateChangeRequestOperation string
 // CreateConnection defines model for CreateConnection.
 type CreateConnection struct {
 	// Config Non-secret settings only; SecretMesh never stores cloud credentials.
-	// AWS: `role_arn` and `region`. SecretMesh generates the role's
-	// `external_id` and returns it in the response.
+	// AWS: `role_arn` and `region`.
+	// Azure: `vault_url` (https://NAME.vault.azure.net) and `tenant_id`.
+	// GCP: `project_id` and `service_account` (the customer service
+	// account SecretMesh impersonates).
+	// SecretMesh generates `external_id` for each cloud connection and
+	// returns it in the response; the customer proves ownership by
+	// trusting it (AWS role trust policy) or storing it in a
+	// `secretmesh-external-id` secret (Azure, GCP).
 	Config *map[string]string `json:"config,omitempty"`
 
 	// DefaultEnvironmentId Environment for discovered secrets without a secretmesh:environment tag.

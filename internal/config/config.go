@@ -67,6 +67,23 @@ type Governance struct {
 	// AWSEndpoint overrides AWS endpoints (local emulators only).
 	AWSEndpoint string
 
+	// EnableAzureConnector registers the Azure Key Vault provider. Off by
+	// default: it authenticates with the workload identity of the deployment,
+	// which only exists on Azure (or with federated credentials).
+	EnableAzureConnector bool
+	// AzureEndpoint overrides vault endpoints (local emulators only).
+	AzureEndpoint string
+	// EnableGCPConnector registers the Google Cloud Secret Manager provider.
+	// Off by default, like Azure.
+	EnableGCPConnector bool
+	// GCPEndpoint and GCPIAMEndpoint override Google API endpoints (local
+	// emulators only).
+	GCPEndpoint    string
+	GCPIAMEndpoint string
+	// GCPAllowServiceAccountKeys accepts a service account key file as
+	// SecretMesh's own identity. Development only: the key is long lived.
+	GCPAllowServiceAccountKeys bool
+
 	// Keyring is "local" (keys derived from MasterKey) or "aws-kms".
 	Keyring         string
 	KMSMacKeyID     string
@@ -231,6 +248,9 @@ func loadGovernance() (Governance, error) {
 		ChangeRequestTTL:    72 * time.Hour,
 		EnableAWSConnector:  true,
 		AWSEndpoint:         os.Getenv("SECRETMESH_AWS_ENDPOINT_URL"),
+		AzureEndpoint:       os.Getenv("SECRETMESH_AZURE_ENDPOINT_URL"),
+		GCPEndpoint:         os.Getenv("SECRETMESH_GCP_ENDPOINT_URL"),
+		GCPIAMEndpoint:      os.Getenv("SECRETMESH_GCP_IAM_ENDPOINT_URL"),
 		Keyring:             getenv("SECRETMESH_KEYRING", "local"),
 		KMSMacKeyID:         os.Getenv("SECRETMESH_KMS_MAC_KEY_ID"),
 		KMSSigningKeyID:     os.Getenv("SECRETMESH_KMS_SIGNING_KEY_ID"),
@@ -267,6 +287,21 @@ func loadGovernance() (Governance, error) {
 		var err error
 		if g.EnableAWSConnector, err = strconv.ParseBool(v); err != nil {
 			errs = append(errs, fmt.Errorf("SECRETMESH_ENABLE_AWS_CONNECTOR: %w", err))
+		}
+	}
+	for _, f := range []struct {
+		env string
+		dst *bool
+	}{
+		{"SECRETMESH_ENABLE_AZURE_CONNECTOR", &g.EnableAzureConnector},
+		{"SECRETMESH_ENABLE_GCP_CONNECTOR", &g.EnableGCPConnector},
+		{"SECRETMESH_GCP_ALLOW_SERVICE_ACCOUNT_KEYS", &g.GCPAllowServiceAccountKeys},
+	} {
+		if v := os.Getenv(f.env); v != "" {
+			var err error
+			if *f.dst, err = strconv.ParseBool(v); err != nil {
+				errs = append(errs, fmt.Errorf("%s: %w", f.env, err))
+			}
 		}
 	}
 	if v := os.Getenv("SECRETMESH_AUDIT_EXPORT_RETENTION_DAYS"); v != "" {

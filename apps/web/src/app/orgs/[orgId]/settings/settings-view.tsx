@@ -754,16 +754,16 @@ function Connections({ data, base, run }: SectionProps) {
   return (
     <>
       <Callout tone="info" icon={<Cloud size={16} />}>
-        SecretMesh reaches each cloud by assuming a role you control. It never stores cloud credentials or secret values. See <code>docs/guides/aws.md</code> for the role template.
+        SecretMesh reaches each cloud with an identity you grant (an AWS role, an Azure RBAC assignment or an impersonated GCP service account). It never stores cloud credentials or secret values. See <code>docs/guides</code> for each provider.
       </Callout>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <Button variant="primary" icon={<Plus size={15} />} onClick={() => setAdding(true)}>
-          Add AWS connection
+          Add connection
         </Button>
       </div>
       {data.connections.length === 0 ? (
         <Card>
-          <EmptyState icon={<Cloud size={22} />} title="No connections yet" action={<Button variant="primary" onClick={() => setAdding(true)}>Connect AWS</Button>}>
+          <EmptyState icon={<Cloud size={22} />} title="No connections yet" action={<Button variant="primary" onClick={() => setAdding(true)}>Connect a cloud</Button>}>
             Connect a cloud account to discover and govern its secrets.
           </EmptyState>
         </Card>
@@ -833,12 +833,12 @@ function Connections({ data, base, run }: SectionProps) {
           })}
         </div>
       )}
-      <Drawer open={adding} onClose={() => setAdding(false)} icon={<Cloud size={16} />} title="Connect AWS" description="SecretMesh assumes an IAM role in your account using an ExternalId it generates.">
+      <Drawer open={adding} onClose={() => setAdding(false)} icon={<Cloud size={16} />} title="Connect a cloud" description="SecretMesh generates an external ID that you add to your cloud account to prove the connection is yours.">
         <ConnectionForm
           environments={data.environments}
           onCancel={() => setAdding(false)}
           onCreate={async (body) => {
-            const ok = await run(() => api("POST", `${base}/connections`, body), "Connection created", "Add the ExternalId to the role's trust policy, then click Sync.");
+            const ok = await run(() => api("POST", `${base}/connections`, body), "Connection created", "Add the external ID on the cloud side (see the connection card), then click Sync.");
             if (ok) setAdding(false);
             return ok;
           }}
@@ -857,6 +857,35 @@ function KV({ k, children }: { k: string; children: ReactNode }) {
   );
 }
 
+type CloudProvider = "aws" | "azure" | "gcp";
+
+const providers: Record<CloudProvider, { label: string; fields: { key: string; label: string; placeholder: string; hint?: string; mono?: boolean; pattern?: string }[]; next: string }> = {
+  aws: {
+    label: "AWS Secrets Manager",
+    fields: [
+      { key: "role_arn", label: "Role ARN", placeholder: "arn:aws:iam::123456789012:role/secretmesh-connector", mono: true },
+      { key: "region", label: "Region", placeholder: "us-east-1" },
+    ],
+    next: "After creating the connection, copy its ExternalId into the role's trust policy, then click Sync.",
+  },
+  azure: {
+    label: "Azure Key Vault",
+    fields: [
+      { key: "vault_url", label: "Vault URL", placeholder: "https://my-vault.vault.azure.net", mono: true },
+      { key: "tenant_id", label: "Tenant ID", placeholder: "00000000-0000-0000-0000-000000000000", mono: true },
+    ],
+    next: "After creating the connection, store its external ID as the value of a secret named secretmesh-external-id in the vault, grant SecretMesh's identity the connector role, then click Sync.",
+  },
+  gcp: {
+    label: "Google Cloud Secret Manager",
+    fields: [
+      { key: "project_id", label: "Project ID", placeholder: "my-project-123456", mono: true },
+      { key: "service_account", label: "Service account", placeholder: "secretmesh@my-project-123456.iam.gserviceaccount.com", mono: true, hint: "The account SecretMesh impersonates. No key file is ever needed." },
+    ],
+    next: "After creating the connection, store its external ID as the value of a secret named secretmesh-external-id in the project, let SecretMesh's identity create tokens for the service account, then click Sync.",
+  },
+};
+
 function ConnectionForm({
   environments,
   onCreate,
@@ -866,34 +895,50 @@ function ConnectionForm({
   onCreate: (body: Record<string, unknown>) => Promise<boolean>;
   onCancel: () => void;
 }) {
+  const [provider, setProvider] = useState<CloudProvider>("aws");
   const [name, setName] = useState("");
-  const [roleArn, setRoleArn] = useState("");
-  const [region, setRegion] = useState("us-east-1");
+  const [values, setValues] = useState<Record<string, string>>({ region: "us-east-1" });
   const [defaultEnv, setDefaultEnv] = useState("");
   const [busy, setBusy] = useState(false);
+  const spec = providers[provider];
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
     await onCreate({
       name: name.trim(),
-      provider: "aws",
-      config: { role_arn: roleArn.trim(), region: region.trim() },
+      provider,
+      config: Object.fromEntries(spec.fields.map((f) => [f.key, (values[f.key] ?? "").trim()])),
       default_environment_id: defaultEnv || undefined,
     });
     setBusy(false);
   }
   return (
     <form className="form" onSubmit={submit}>
+      <Field label="Cloud" htmlFor="c-provider">
+        <select id="c-provider" className="select" value={provider} onChange={(e) => setProvider(e.target.value as CloudProvider)}>
+          {(Object.keys(providers) as CloudProvider[]).map((p) => (
+            <option key={p} value={p}>
+              {providers[p].label}
+            </option>
+          ))}
+        </select>
+      </Field>
       <Field label="Name" htmlFor="c-name" hint="Lowercase letters, digits and dashes.">
-        <input id="c-name" className="input" required autoFocus pattern="[a-z0-9][a-z0-9-]*" placeholder="e.g. aws-prod" value={name} onChange={(e) => setName(e.target.value)} />
+        <input id="c-name" className="input" required autoFocus pattern="[a-z0-9][a-z0-9-]*" placeholder={`e.g. ${provider}-prod`} value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
-      <Field label="Role ARN" htmlFor="c-arn">
-        <input id="c-arn" className="input mono" required placeholder="arn:aws:iam::123456789012:role/secretmesh-connector" value={roleArn} onChange={(e) => setRoleArn(e.target.value)} />
-      </Field>
-      <Field label="Region" htmlFor="c-region">
-        <input id="c-region" className="input" required value={region} onChange={(e) => setRegion(e.target.value)} />
-      </Field>
-      <Field label="Environment for untagged secrets" htmlFor="c-env" hint="Discovered secrets without a secretmesh:environment tag land here.">
+      {spec.fields.map((f) => (
+        <Field key={`${provider}-${f.key}`} label={f.label} htmlFor={`c-${f.key}`} hint={f.hint}>
+          <input
+            id={`c-${f.key}`}
+            className={f.mono ? "input mono" : "input"}
+            required
+            placeholder={f.placeholder}
+            value={values[f.key] ?? ""}
+            onChange={(e) => setValues({ ...values, [f.key]: e.target.value })}
+          />
+        </Field>
+      ))}
+      <Field label="Environment for untagged secrets" htmlFor="c-env" hint="Discovered secrets without a secretmesh environment tag or label land here.">
         <select id="c-env" className="select" value={defaultEnv} onChange={(e) => setDefaultEnv(e.target.value)}>
           <option value="">None (skip them)</option>
           {environments.map((e) => (
@@ -904,7 +949,7 @@ function ConnectionForm({
         </select>
       </Field>
       <Callout tone="info" title="Next steps">
-        After creating the connection, copy its ExternalId into the role&apos;s trust policy, then click Sync.
+        {spec.next}
       </Callout>
       <FormActions busy={busy} label="Create connection" onCancel={onCancel} />
     </form>

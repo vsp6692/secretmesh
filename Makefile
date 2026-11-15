@@ -68,7 +68,7 @@ test: ## Unit tests (integration tests skip without a database or AWS emulator)
 
 TEST_COMPOSE := docker compose -f deployments/docker/compose.test.yaml
 # Minimum total statement coverage; keep in sync with COVER_MIN in .github/workflows/ci.yml.
-COVER_MIN := 70
+COVER_MIN := 74
 TEST_DB := postgres://postgres:postgres@localhost:5439/postgres?sslmode=disable
 
 .PHONY: test-stack-up

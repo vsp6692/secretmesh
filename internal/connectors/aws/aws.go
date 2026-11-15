@@ -176,6 +176,19 @@ func mapErr(err error) error {
 	return fmt.Errorf("%w: %w", connectors.ErrTransient, err)
 }
 
+// readErr maps errors of value reads. A secret scheduled for deletion refuses
+// reads with InvalidRequestException (AWS) or similar wording (emulators);
+// to callers it is gone.
+func readErr(err error) error {
+	err = mapErr(err)
+	if err != nil && !errors.Is(err, connectors.ErrNotFound) {
+		if msg := err.Error(); strings.Contains(msg, "marked for deletion") || strings.Contains(msg, "marked deleted") {
+			return fmt.Errorf("%w: scheduled for deletion", connectors.ErrNotFound)
+		}
+	}
+	return err
+}
+
 func requestID(md smithymiddleware.Metadata) string {
 	id, _ := awsmiddleware.GetRequestIDMetadata(md)
 	return id
@@ -479,7 +492,7 @@ func (s *store) Reveal(ctx context.Context, t connectors.Target) (sensitive.Valu
 		SecretId: aws.String(t.ProviderRef), VersionStage: aws.String(currentLabel),
 	})
 	if err != nil {
-		return sensitive.Value{}, "", mapErr(err)
+		return sensitive.Value{}, "", readErr(err)
 	}
 	if out.SecretString != nil {
 		return sensitive.FromString(*out.SecretString), aws.ToString(out.VersionId), nil
