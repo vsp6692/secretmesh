@@ -57,7 +57,7 @@ if has '^apps/web/'; then
     echo "apps/web/node_modules is missing. Run: cd apps/web && npm ci"; failed=1
   else
     step "web: eslint" sh -c 'cd apps/web && npm run lint --silent'
-    step "web: type check" sh -c 'cd apps/web && npx tsc --noEmit'
+    step "web: type check" sh -c 'cd apps/web && npm run typecheck'
   fi
 fi
 

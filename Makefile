@@ -104,7 +104,7 @@ verify: lint security test-integration ## Everything CI checks, locally
 .PHONY: lint
 lint: ## Go and web linters
 	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION) run
-	cd apps/web && npm run lint && npx tsc --noEmit
+	cd apps/web && npm run lint && npm run typecheck
 
 .PHONY: security
 security: ## Secret scan and Go vulnerability check
