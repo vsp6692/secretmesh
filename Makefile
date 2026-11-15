@@ -66,10 +66,40 @@ build: ## Build API binary and web app
 test: ## Unit tests (integration tests skip without a database or AWS emulator)
 	SECRETMESH_TEST_DATABASE_URL= SECRETMESH_TEST_AWS_ENDPOINT= go test -race ./...
 
+TEST_COMPOSE := docker compose -f deployments/docker/compose.test.yaml
+# Minimum total statement coverage; keep in sync with COVER_MIN in .github/workflows/ci.yml.
+COVER_MIN := 70
+TEST_DB := postgres://postgres:postgres@localhost:5439/postgres?sslmode=disable
+
+.PHONY: test-stack-up
+test-stack-up: ## Start the throwaway test stack (Postgres, LocalStack, Moto)
+	$(TEST_COMPOSE) up -d --wait
+
+.PHONY: test-stack-down
+test-stack-down: ## Remove the test stack
+	$(TEST_COMPOSE) down -v
+
+.PHONY: test-localstack
+test-localstack: ## Full suite on LocalStack (run test-stack-up first); no skips allowed
+	SECRETMESH_TEST_DATABASE_URL='$(TEST_DB)' SECRETMESH_TEST_AWS_ENDPOINT=http://127.0.0.1:4566 COVER_MIN=$(COVER_MIN) scripts/go-test-strict.sh
+
+.PHONY: test-moto
+test-moto: ## Full suite on Moto (run test-stack-up first); no skips allowed
+	SECRETMESH_TEST_DATABASE_URL='$(TEST_DB)' SECRETMESH_TEST_AWS_ENDPOINT=http://127.0.0.1:5051 COVER_MIN=$(COVER_MIN) scripts/go-test-strict.sh
+
 .PHONY: test-integration
-test-integration: ## All tests against SECRETMESH_TEST_DATABASE_URL and SECRETMESH_TEST_AWS_ENDPOINT
-	@test -n "$$SECRETMESH_TEST_DATABASE_URL" || (echo "SECRETMESH_TEST_DATABASE_URL is not set" && exit 1)
-	go test -race -count=1 ./...
+test-integration: test-stack-up ## Full suite on LocalStack and Moto, starting the test stack
+	@echo "== LocalStack" && $(MAKE) --no-print-directory test-localstack
+	@echo "== Moto" && $(MAKE) --no-print-directory test-moto
+
+.PHONY: hooks
+hooks: ## Install the git hooks (pre-commit, commit-msg, pre-push)
+	git config core.hooksPath .githooks
+	@echo "Hooks installed. pre-commit checks every commit; pre-push runs the integration suite."
+
+.PHONY: verify
+verify: lint security test-integration ## Everything CI checks, locally
+	cd apps/web && npm run build
 
 .PHONY: lint
 lint: ## Go and web linters

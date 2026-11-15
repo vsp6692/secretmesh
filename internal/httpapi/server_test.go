@@ -97,7 +97,7 @@ func setup(t *testing.T) *env {
 	registry := connectors.NewRegistry()
 	registry.Register(fake.Provider, vault.Factory)
 	if endpoint := os.Getenv("SECRETMESH_TEST_AWS_ENDPOINT"); endpoint != "" {
-		t.Setenv("AWS_ACCESS_KEY_ID", "test")
+		t.Setenv("AWS_ACCESS_KEY_ID", "123456789012")
 		t.Setenv("AWS_SECRET_ACCESS_KEY", "test")
 		t.Setenv("AWS_REGION", "us-east-1")
 		p, err := awsconn.New(ctx, endpoint)

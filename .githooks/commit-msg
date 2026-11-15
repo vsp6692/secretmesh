@@ -1,0 +1,24 @@
+#!/bin/sh
+# Commit message policy, mirrored by the "DCO sign-off" check in CI.
+set -eu
+msg=$1
+subject=$(sed -n '1p' "$msg")
+
+case "$subject" in Merge\ *|Revert\ \"*|fixup!*|squash!*) exit 0 ;; esac
+
+fail() { printf 'commit-msg: %s\n' "$1" >&2; exit 1; }
+
+[ -n "$subject" ] || fail "the first line must not be empty."
+[ "${#subject}" -le 72 ] || fail "the first line is ${#subject} characters; keep it to 72 or fewer."
+
+# Developer Certificate of Origin: the sign-off must match the commit author.
+author=$(git var GIT_AUTHOR_IDENT | sed 's/ [0-9][0-9]* [+-][0-9]*$//')
+if ! grep -qixF "Signed-off-by: $author" "$msg"; then
+  fail "missing 'Signed-off-by: $author'. Commit with 'git commit -s' (see CONTRIBUTING.md)."
+fi
+
+# Commits carry the author's name only: no AI tool as co-author or committer.
+if grep -qiE '^(co-authored-by|generated-by|assisted-by):.*(claude|anthropic|copilot|chatgpt|openai|codex|gemini)' "$msg"; then
+  fail "remove the AI tool trailer; commits are attributed to their human author only."
+fi
+exit 0

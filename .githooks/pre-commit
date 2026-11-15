@@ -1,0 +1,69 @@
+#!/bin/sh
+# Pre-commit: the fast subset of CI (about 20 seconds). The full integration
+# suite on LocalStack and Moto runs in the pre-push hook and in CI.
+#
+# These checks run on the working tree, so stage everything you want checked.
+set -eu
+cd "$(git rev-parse --show-toplevel)"
+. .githooks/lib.sh
+failed=0
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -n "$staged" ] || exit 0
+has() { printf '%s\n' "$staged" | grep -Eq "$1"; }
+
+# --- Always ---------------------------------------------------------------
+no_credential_files() {
+  bad=$(printf '%s\n' "$staged" | grep -E '(^|/)\.env$|(^|/)\.env\.(local|production)$|\.(pem|p12|pfx|jks|key)$|(^|/)id_(rsa|ed25519|ecdsa)$' || true)
+  if [ -n "$bad" ]; then echo "Refusing to commit credential files:"; echo "$bad"; return 1; fi
+}
+step "no credential files" no_credential_files
+step "no secrets in staged changes (gitleaks)" \
+  go run "github.com/zricethezav/gitleaks/v8@$(makevar GITLEAKS_VERSION)" git --staged --no-banner --redact --config .gitleaks.toml
+no_conflict_markers() {
+  git diff --cached --check
+}
+step "no whitespace errors or conflict markers" no_conflict_markers
+
+# --- Go -------------------------------------------------------------------
+if has '\.go$|^go\.(mod|sum)$|^migrations/|^policies/|^contracts/'; then
+  gofmt_staged() {
+    files=$(printf '%s\n' "$staged" | grep '\.go$' || true)
+    [ -z "$files" ] && return 0
+    bad=$(printf '%s\n' "$files" | xargs gofmt -l)
+    if [ -n "$bad" ]; then echo "Run gofmt -w on:"; echo "$bad"; return 1; fi
+  }
+  step "gofmt" gofmt_staged
+  step "go.mod and go.sum are tidy" go mod tidy -diff
+  if has '^contracts/|api\.gen\.go$'; then
+    generated_current() {
+      go generate ./...
+      git diff --quiet -- internal/httpapi/api.gen.go || {
+        echo "Generated code was out of date. Review and stage internal/httpapi/api.gen.go."; return 1; }
+    }
+    step "generated code is up to date" generated_current
+  fi
+  step "go vet" go vet ./...
+  step "golangci-lint" go run "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(makevar GOLANGCI_LINT_VERSION)" run
+  unit_tests() {
+    SECRETMESH_TEST_DATABASE_URL= SECRETMESH_TEST_AWS_ENDPOINT= go test -race -count=1 ./...
+  }
+  step "unit tests (race detector)" unit_tests
+fi
+
+# --- Web ------------------------------------------------------------------
+if has '^apps/web/'; then
+  if [ ! -d apps/web/node_modules ]; then
+    echo "apps/web/node_modules is missing. Run: cd apps/web && npm ci"; failed=1
+  else
+    step "web: eslint" sh -c 'cd apps/web && npm run lint --silent'
+    step "web: type check" sh -c 'cd apps/web && npx tsc --noEmit'
+  fi
+fi
+
+# --- GitHub Actions ---------------------------------------------------------
+if has '^\.github/workflows/'; then
+  step "workflows: actionlint" go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+fi
+
+finish "Commit"

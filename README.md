@@ -46,11 +46,13 @@ Keycloak admin console: http://localhost:8081 (`admin` / `admin`).
 Other targets (`make help`):
 
 ```sh
-make test               # unit tests; DB tests skip without a database
-make test-integration   # all tests, using SECRETMESH_TEST_DATABASE_URL
+make test               # unit tests; DB and AWS tests skip without their services
+make test-integration   # full suite on LocalStack and Moto (throwaway Docker stack, no skips allowed)
 make lint               # golangci-lint, eslint, tsc
 make security           # gitleaks + govulncheck
 make generate           # regenerate Go code from the OpenAPI contract
+make hooks              # install the pre-commit, commit-msg and pre-push hooks
+make verify             # everything CI checks
 ```
 
 ### Database roles

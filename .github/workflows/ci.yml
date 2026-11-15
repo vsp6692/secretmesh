@@ -14,25 +14,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  go:
-    name: Go
+  go-static:
+    name: Go static checks
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    services:
-      postgres:
-        image: postgres:17.11-alpine
-        env:
-          POSTGRES_PASSWORD: postgres
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 2s --health-timeout 3s --health-retries 30
-      moto:
-        image: motoserver/moto:5.2.5
-        ports: ["5050:5000"]
-    env:
-      SECRETMESH_TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
-      SECRETMESH_TEST_AWS_ENDPOINT: http://127.0.0.1:5050
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -45,20 +30,73 @@ jobs:
           go mod tidy -diff
       - name: Formatting
         run: |
-          unformatted=$(git ls-files -z '*.go' | xargs -0 gofmt -l)
-          if [ -n "$unformatted" ]; then echo "Run gofmt on:"; echo "$unformatted"; exit 1; fi
+          git ls-files -z '*.go' | xargs -0 gofmt -l > /tmp/unformatted
+          if [ -s /tmp/unformatted ]; then echo "Run gofmt on:"; cat /tmp/unformatted; exit 1; fi
       - name: Generated code is up to date
         run: |
           go generate ./...
           git diff --exit-code
       - run: go vet ./...
-      - name: Test (with integration tests)
-        run: go test -race -count=1 ./...
       - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.15.0
       - name: govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+
+  # The whole suite, including every AWS integration test, runs once per
+  # emulator. The same code must behave the same on both. Tests may not skip:
+  # a skipped integration test means the environment is not wired up.
+  go:
+    name: Go tests (${{ matrix.emulator }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { emulator: localstack, endpoint: "http://127.0.0.1:4566" }
+          - { emulator: moto, endpoint: "http://127.0.0.1:5050" }
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+      # Pinned to 4.14.0, the newest release that runs without an auth token
+      # (fork pull requests have no secrets). Keep in sync with
+      # deployments/docker/compose.test.yaml.
+      localstack:
+        image: localstack/localstack:4.14.0
+        env:
+          SERVICES: secretsmanager,sts,kms,s3
+          DISABLE_EVENTS: "1"
+        ports: ["4566:4566"]
+        options: >-
+          --health-cmd "curl -sf http://localhost:4566/_localstack/health"
+          --health-interval 3s --health-timeout 5s --health-retries 40
+      moto:
+        image: motoserver/moto:5.2.5
+        ports: ["5050:5000"]
+    env:
+      SECRETMESH_TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
+      SECRETMESH_TEST_AWS_ENDPOINT: ${{ matrix.endpoint }}
+      COVER_MIN: "70" # keep in sync with COVER_MIN in the Makefile
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Wait for the emulator
+        run: |
+          curl -s -o /dev/null --retry 60 --retry-delay 2 --retry-connrefused "$SECRETMESH_TEST_AWS_ENDPOINT/" \
+            || { echo "emulator did not become reachable"; exit 1; }
+      - name: Tests (race detector, no skips, coverage floor)
+        run: scripts/go-test-strict.sh
 
   web:
     name: Web
@@ -140,7 +178,7 @@ jobs:
   ci-ok:
     name: CI passed
     if: always()
-    needs: [go, web, security, workflows, docker]
+    needs: [go-static, go, web, security, workflows, docker]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
