@@ -2,9 +2,11 @@
 
 Multi-cloud secrets governance for AWS Secrets Manager, Azure Key Vault and Google Cloud Secret Manager.
 
-SecretMesh is a control plane: it manages inventory, policies, approvals, rotation and audit. **Secret values never leave the customer's cloud vaults and are never persisted by SecretMesh.** Its database holds only metadata.
+A personal project by [@vsp6692](https://github.com/vsp6692), built and maintained in my spare time.
 
-> Status: early development (milestone M4, rotation and notifications; AWS tested against an emulator only). Not ready for production use. See [PLAN.md](PLAN.md).
+SecretMesh is a control plane: it manages inventory, policies, approvals, rotation and audit. **Secret values never leave your own cloud vaults and are never persisted by SecretMesh.** Its database holds only metadata.
+
+> Status: personal project in early development (milestone M4, rotation and notifications; AWS tested against an emulator only). Not ready for production use. See [PLAN.md](PLAN.md).
 
 ## Repository layout
 
@@ -87,7 +89,7 @@ All settings are environment variables prefixed `SECRETMESH_` and documented in 
 
 ## Security
 
-Report vulnerabilities privately; see [SECURITY.md](SECURITY.md).
+Please report vulnerabilities privately; see [SECURITY.md](SECURITY.md).
 
 ## License
 

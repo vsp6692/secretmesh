@@ -1,6 +1,8 @@
 # Contributing to SecretMesh
 
-Thanks for your interest in SecretMesh. Read this before opening a pull request.
+Thanks for your interest in SecretMesh. It is a personal project that I build and maintain on my own, so I review issues and pull requests as time allows. For anything larger than a small fix, please open an issue first so we can agree on the approach.
+
+Read this before opening a pull request.
 
 ## Ground rules
 
@@ -19,7 +21,7 @@ make test-integration   # with a database (see README)
 make security           # gitleaks + govulncheck
 ```
 
-CI runs the same checks, plus integration tests against PostgreSQL, semgrep and CodeQL. All must pass before merge.
+CI runs the same checks, plus integration tests against PostgreSQL, semgrep and CodeQL. All must pass before I merge.
 
 ## Commits and pull requests
 
