@@ -1,6 +1,6 @@
 # Security Policy
 
-SecretMesh governs access to production credentials, so we treat security reports as our highest priority.
+SecretMesh governs access to production credentials, so I treat security reports as my highest priority. It is a personal project maintained by one person.
 
 ## Supported versions
 
@@ -19,7 +19,7 @@ Please include:
 - steps to reproduce or a proof of concept;
 - any suggested mitigation.
 
-We aim to acknowledge reports within 3 business days and to agree on a disclosure timeline with you. We credit reporters in release notes unless you prefer otherwise.
+I aim to acknowledge reports within 3 business days and to agree on a disclosure timeline with you. As a solo maintainer I may need longer to ship a fix; I will keep you updated. I credit reporters in release notes unless you prefer otherwise.
 
 ## Scope
 
