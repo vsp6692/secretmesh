@@ -10,6 +10,9 @@
 
 ## Checklist
 
+- [ ] I have read [CLA.md](../CLA.md) and agree to it for this contribution (draft; not yet enforced), and I understand the contribution is licensed under [LICENSE.md](../LICENSE.md) and may also be offered under commercial licences
+- [ ] New source files carry the SPDX header (`make license-headers`); new dependencies pass `make license-check` and `docs/legal/THIRD_PARTY_LICENSES.md` was regenerated (`make license-report`)
+- [ ] I wrote this myself or have the right to submit it; any substantial AI-generated part is disclosed above
 - [ ] Commits are signed off (`git commit -s`), see [CONTRIBUTING.md](../CONTRIBUTING.md)
 - [ ] `make lint test` passes locally
 - [ ] Tests cover the new behaviour (negative tests for security-relevant changes)

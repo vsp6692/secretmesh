@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package rotation schedules and runs secret rotation (ADR-0011).
 //
 // SecretMesh owns the schedule and the governance: who may set a policy,

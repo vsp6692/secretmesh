@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package audit maintains the per-organization, hash-chained security event
 // ledger (blueprint §10.2, ADR-0009).
 //

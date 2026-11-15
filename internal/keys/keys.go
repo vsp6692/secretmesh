@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package keys provides the cryptographic keys SecretMesh uses for approval
 // binding (per-tenant HMAC, ADR-0004) and audit checkpoint signatures.
 //

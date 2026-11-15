@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package telemetry configures structured logging with redaction enabled by default.
 package telemetry
 

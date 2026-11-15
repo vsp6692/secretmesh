@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 -- +goose Up
 
 -- M2: inventory metadata, role bindings, approvals, execution journal and the

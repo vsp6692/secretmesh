@@ -2,6 +2,10 @@
 
 Multi-cloud secrets governance for AWS Secrets Manager, Azure Key Vault and Google Cloud Secret Manager.
 
+SecretMesh is source-available software, free for personal and internal organizational use, including production deployments. Commercial redistribution, resale, white-labeling, and third-party SaaS or managed hosting require a separate commercial license.
+
+> **Licensing status: draft.** The licence terms in this repository ([LICENSE.md](LICENSE.md)) are a proposal pending qualified legal review and owner approval. Until they are adopted, SecretMesh as published is under the [Apache License 2.0](LICENSES/Apache-2.0.txt). SecretMesh is source-available, not OSI-approved open source. See [Licensing](#licensing).
+
 A personal project by [@vsp6692](https://github.com/vsp6692), built and maintained in my spare time.
 
 SecretMesh is a control plane: it manages inventory, policies, approvals, rotation and audit. **Secret values never leave your own cloud vaults and are never persisted by SecretMesh.** Its database holds only metadata.
@@ -23,6 +27,8 @@ SecretMesh is a control plane: it manages inventory, policies, approvals, rotati
 | `deployments/docker` | Local dependencies (Postgres, Keycloak, Moto AWS emulator) and Dockerfiles |
 | `docs/adr` | Architecture decision records |
 | `docs/guides` | Operator guides (identity provider, AWS, Azure, Google Cloud) |
+| `docs/legal` | Licensing strategy, third-party licences and dependency licence policy |
+| `LICENSES/` | Licence texts (the Apache-2.0 text that governs earlier versions) |
 
 ## Development
 
@@ -94,6 +100,23 @@ All settings are environment variables prefixed `SECRETMESH_` and documented in 
 
 Please report vulnerabilities privately; see [SECURITY.md](SECURITY.md).
 
-## License
+## Licensing
 
-[Apache License 2.0](LICENSE)
+SecretMesh is **source-available**, not open source.
+
+| You want to... | Licence needed |
+|----------------|----------------|
+| Read, learn from, test and modify the code; personal, educational, research and non-commercial use | Free (see [LICENSE.md](LICENSE.md)) |
+| Run it for your own organisation in production, at any size, including commercial businesses | Free |
+| Write independent connectors, plugins and integrations through the documented interfaces | Free; you choose their licence |
+| Contribute fixes, features and connectors | Free, under the [CLA](CLA.md) |
+| Resell or commercially redistribute it, white-label it, embed it in a product you ship, build a commercial derivative, or offer it to others as SaaS or managed hosting (paid or free) | Separate [commercial licence](COMMERCIAL_LICENSE.md) |
+
+There are no licence keys, no activation, no telemetry and no limits on users, resources or deployment size for permitted use.
+
+- Plain-language answers: [LICENSE_FAQ.md](LICENSE_FAQ.md)
+- Trademarks (the name and logo are not licensed with the code): [TRADEMARK_POLICY.md](TRADEMARK_POLICY.md)
+- Third-party components and their licences: [docs/legal/THIRD_PARTY_LICENSES.md](docs/legal/THIRD_PARTY_LICENSES.md)
+- Why this licence, the legal risks and the decisions still open: [docs/legal/LICENSING_STRATEGY.md](docs/legal/LICENSING_STRATEGY.md)
+
+**Draft notice.** The licence, the CLA, the commercial framework and the trademark policy are drafts. They have not been reviewed by a lawyer and are not in effect. Versions already published remain available under the Apache License 2.0 to everyone who received them. Source-available licensing does not prevent copying or independent competing products; it sets terms for use of this code.

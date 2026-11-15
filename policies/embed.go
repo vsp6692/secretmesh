@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package policies embeds the built-in OPA policies.
 package policies
 

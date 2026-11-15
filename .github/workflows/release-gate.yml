@@ -1,0 +1,23 @@
+name: Release gate
+
+# A version tag must not be pushed while the licence documents are still
+# drafts or contain unresolved placeholders. This job is meant to fail until
+# the owner has adopted the licence (docs/legal/LICENSING_STRATEGY.md,
+# "Adoption checklist"). It publishes nothing.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  legal-ready:
+    name: Licence documents are final
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: scripts/check-legal-files.sh --release

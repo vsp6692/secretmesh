@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package notify records notifications in an outbox, in the same transaction
 // as the event they describe, and delivers them to the organization's
 // channels with retries (ADR-0011).

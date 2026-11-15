@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package execution runs approved change requests against providers (the
 // worker side of gates 1-4, ADR-0006/0007).
 //

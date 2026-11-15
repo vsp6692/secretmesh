@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 -- +goose Up
 
 -- M3: provider discovery, break-glass changes and off-database audit export

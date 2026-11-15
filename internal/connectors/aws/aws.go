@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package aws connects SecretMesh to AWS Secrets Manager.
 //
 // SecretMesh assumes a customer-owned IAM role with an ExternalId it

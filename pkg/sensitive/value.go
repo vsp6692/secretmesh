@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package sensitive provides a container for secret material (secret values,
 // credentials, client secrets) that refuses to render its contents through
 // fmt, log/slog, encoding/json or encoding.TextMarshaler.

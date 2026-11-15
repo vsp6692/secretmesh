@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Types mirror contracts/openapi/secretmesh.yaml.
 
 export type Role = "org_admin" | "member";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package pgtest provisions an isolated, migrated PostgreSQL database per test.
 //
 // Tests using it are skipped unless SECRETMESH_TEST_DATABASE_URL points to a

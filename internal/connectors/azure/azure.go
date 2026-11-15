@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package azure connects SecretMesh to Azure Key Vault.
 //
 // SecretMesh authenticates with its own workload identity (a federated

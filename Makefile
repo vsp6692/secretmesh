@@ -98,13 +98,36 @@ hooks: ## Install the git hooks (pre-commit, commit-msg, pre-push)
 	@echo "Hooks installed. pre-commit checks every commit; pre-push runs the integration suite."
 
 .PHONY: verify
-verify: lint security test-integration ## Everything CI checks, locally
+verify: lint security legal-check license-check license-verify test-integration ## Everything CI checks, locally
 	cd apps/web && npm run build
 
 .PHONY: lint
 lint: ## Go and web linters
 	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION) run
 	cd apps/web && npm run lint && npm run typecheck
+
+.PHONY: license-check license-report license-verify license-headers license-texts sbom legal-check
+license-check: ## Dependency licences follow docs/legal/license-policy.json
+	go run ./scripts/licenses check
+
+license-report: ## Regenerate the dependency tables in docs/legal/THIRD_PARTY_LICENSES.md
+	go run ./scripts/licenses update
+
+license-verify: ## Fail if THIRD_PARTY_LICENSES.md is out of date
+	go run ./scripts/licenses verify
+
+license-headers: ## Add or update the SPDX licence header in source files
+	go run ./scripts/licenses headers-apply
+
+license-texts: ## Collect dependency licence texts into build/licenses (what images ship under /licenses)
+	scripts/license-texts.sh
+
+sbom: ## CycloneDX SBOMs for the API and the web console in build/sbom
+	scripts/sbom.sh
+
+legal-check: ## Licensing documents complete and consistent; every source file has its header
+	scripts/check-legal-files.sh
+	go run ./scripts/licenses headers-check
 
 .PHONY: security
 security: ## Secret scan and Go vulnerability check

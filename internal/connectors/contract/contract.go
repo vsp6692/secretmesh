@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package contract is the behavioural test suite every connectors.SecretStore
 // must pass, so that providers differ only in capabilities, never in the
 // guarantees the approval workflow relies on (ADR-0003, ADR-0007):

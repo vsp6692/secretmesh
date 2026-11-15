@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
 # Pre-push: the slow checks. Runs the entire Go suite, including the AWS
 # integration tests, on LocalStack and on Moto, with the race detector and no
 # skipped tests. Needs Docker (about 40 seconds).
@@ -28,6 +29,16 @@ started_here=0
 if [ -z "$($compose ps -q 2>/dev/null)" ]; then started_here=1; fi
 cleanup() { [ "$started_here" = 1 ] && [ -z "${SM_KEEP_STACK:-}" ] && $compose down -v >/dev/null 2>&1 || true; }
 trap cleanup EXIT
+
+if printf '%s\n' "$changed" | grep -Eq '^(go\.(mod|sum)|apps/web/package(-lock)?\.json|docs/legal/license-policy\.json)$'; then
+  if [ -d apps/web/node_modules ]; then
+    step "dependency licences follow the policy" make --no-print-directory license-check
+    step "third-party notice file is up to date" make --no-print-directory license-verify
+  else
+    echo "pre-push: apps/web/node_modules is missing; run 'cd apps/web && npm ci' to check dependency licences." >&2
+    failed=1
+  fi
+fi
 
 step "test stack is up (Postgres, LocalStack, Moto)" $compose up -d --wait
 step "integration suite on LocalStack" make --no-print-directory test-localstack

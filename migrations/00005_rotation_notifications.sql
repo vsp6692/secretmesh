@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 -- +goose Up
 
 -- M4: rotation policies and executions, secret owners, and notifications

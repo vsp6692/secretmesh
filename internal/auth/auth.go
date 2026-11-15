@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package auth defines who is calling (Principal), what they may do in an
 // organization (Access) and the role/permission model. It has no
 // dependencies on storage or transport.

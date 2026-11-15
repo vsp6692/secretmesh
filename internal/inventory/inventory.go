@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package inventory stores environments, cloud connections and secret
 // metadata. It never stores secret values.
 package inventory

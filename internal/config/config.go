@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package config loads SecretMesh configuration from the environment.
 //
 // Any setting holding credentials also accepts a <NAME>_FILE variant that

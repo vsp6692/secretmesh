@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Command secretmesh-api runs the SecretMesh control-plane API.
 //
 // Usage:

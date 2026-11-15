@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
 # Pre-commit: the fast subset of CI (about 20 seconds). The full integration
 # suite on LocalStack and Moto runs in the pre-push hook and in CI.
 #
@@ -59,6 +60,14 @@ if has '^apps/web/'; then
     step "web: eslint" sh -c 'cd apps/web && npm run lint --silent'
     step "web: type check" sh -c 'cd apps/web && npm run typecheck'
   fi
+fi
+
+# --- Licensing --------------------------------------------------------------
+if has '^(LICENSE|COMMERCIAL_LICENSE|LICENSE_FAQ|CLA|TRADEMARK_POLICY|README|CONTRIBUTING|SECURITY)\.md$|^docs/legal/|^LICENSES/|^scripts/licenses/'; then
+  step "licensing documents are complete" scripts/check-legal-files.sh
+fi
+if has '\.(go|ts|tsx|mjs|sh|rego|sql|tf)$|^\.githooks/'; then
+  step "source files carry the licence header (make license-headers adds it)" go run ./scripts/licenses headers-check
 fi
 
 # --- GitHub Actions ---------------------------------------------------------

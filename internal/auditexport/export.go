@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package auditexport copies signed audit batches to write-once storage
 // (S3 Object Lock), outside the reach of SecretMesh's database and its
 // owner (blueprint §10.2, ADR-0010).

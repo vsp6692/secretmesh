@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
 # Commit message policy, mirrored by the "DCO sign-off" check in CI.
 set -eu
 msg=$1

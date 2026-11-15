@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
 # Runs the whole Go suite with the race detector and fails if any test was
 # skipped. Skips are how an integration test silently stops running when its
 # database or emulator is not wired up, so they are not allowed here.

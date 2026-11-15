@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package connectors defines how SecretMesh talks to secret providers.
 //
 // Every mutating call takes an idempotency key (the execution journal ID,

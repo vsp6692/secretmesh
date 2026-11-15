@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 # SecretMesh connector for Google Cloud Secret Manager (ADR-0012).
 #
 # Creates, in the customer project:

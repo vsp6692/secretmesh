@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 # Shared helpers for the git hooks. Sourced, not executed.
 
 if [ -t 1 ]; then

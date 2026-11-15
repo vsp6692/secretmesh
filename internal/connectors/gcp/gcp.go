@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package gcp connects SecretMesh to Google Cloud Secret Manager.
 //
 // SecretMesh authenticates as its own workload identity (Application Default

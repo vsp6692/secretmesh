@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package policy evaluates the execution policy (gate 4) with embedded OPA.
 package policy
 

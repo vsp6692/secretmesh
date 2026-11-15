@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package httpx contains HTTP plumbing shared by all handlers: request IDs,
 // JSON error responses, access logging and security headers.
 package httpx

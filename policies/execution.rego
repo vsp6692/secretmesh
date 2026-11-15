@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 # Execution policy (gate 4, ADR-0006). The worker evaluates it immediately
 # before every provider call, with input built from the database, never from
 # the job payload. Any deny reason blocks execution.

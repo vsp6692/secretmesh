@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package approvals implements change requests and the approval state
 // machine (gate 3):
 //

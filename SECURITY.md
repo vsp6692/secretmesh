@@ -31,4 +31,13 @@ Of particular interest:
 - tampering with or suppression of audit records;
 - misuse of SecretMesh's cloud identities.
 
+## Licensing and security reports
+
+- Security fixes are published for every supported version regardless of how it is licensed: internal users, community users and commercial licensees receive the same fixes. A commercial licence does not buy earlier access to vulnerability details in public releases. [DECISION: whether commercial licensees get a private pre-notification channel; if so, it is named in their agreement.]
+- Reports about code you received under the Apache License 2.0 (versions before the licence change) are handled the same way.
+- Good-faith security research on **your own** SecretMesh deployment, or on the source code, is welcome and is not restricted by the licence ([LICENSE.md](LICENSE.md) section 5.6).
+- This policy does not authorise testing **someone else's** SecretMesh deployment, including hosted instances that a third party operates under a commercial licence. You need that operator's permission.
+- If you believe someone is running SecretMesh in breach of its licence (for example, a hosted service without a commercial licence), report it to [LICENSING_CONTACT_EMAIL] (placeholder), not through the vulnerability channel.
+- Our own supply chain: dependency licences and software bills of materials are checked in CI ([docs/legal/THIRD_PARTY_LICENSES.md](docs/legal/THIRD_PARTY_LICENSES.md)). A vulnerability in a third-party component should be reported to that component's maintainers and, if SecretMesh is affected, to us.
+
 The development credentials in `deployments/docker` and `.env.example` are intentionally public and are not vulnerabilities.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package tenancy manages organizations, memberships and invitations.
 //
 // Methods run under the tenant scope carried by ctx (postgres.Tx); with no

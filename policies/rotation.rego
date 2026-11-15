@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 # Rotation policy (ADR-0011). The rotation worker evaluates it immediately
 # before asking the provider to rotate, with input built from the database.
 # A rotation policy is the standing authorization for scheduled rotations;

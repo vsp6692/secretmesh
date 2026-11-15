@@ -25,7 +25,7 @@ jobs:
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: moderate
-          deny-licenses: AGPL-1.0-only, AGPL-1.0-or-later, AGPL-3.0-only, AGPL-3.0-or-later, GPL-1.0-only, GPL-1.0-or-later, GPL-2.0-only, GPL-2.0-or-later, GPL-3.0-only, GPL-3.0-or-later, SSPL-1.0, BUSL-1.1
+          deny-licenses: AGPL-1.0-only, AGPL-1.0-or-later, AGPL-3.0-only, AGPL-3.0-or-later, GPL-1.0-only, GPL-1.0-or-later, GPL-2.0-only, GPL-2.0-or-later, GPL-3.0-only, GPL-3.0-or-later, LGPL-2.0-only, LGPL-2.0-or-later, LGPL-2.1-only, LGPL-2.1-or-later, LGPL-3.0-only, SSPL-1.0, BUSL-1.1, Elastic-2.0, CC-BY-NC-4.0, CC-BY-NC-SA-4.0
 
   sign-off:
     name: DCO sign-off
@@ -57,6 +57,22 @@ jobs:
             echo "  git rebase --signoff origin/main && git push --force-with-lease"
             exit 1
           fi
+
+  # CLA.md is a draft, so this reports missing acceptance without failing
+  # until the owner sets CLA_ENFORCE to "true" (scripts/check-cla.sh).
+  cla:
+    name: CLA
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Author has accepted CLA.md
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          CLA_ENFORCE: "false"
+        run: scripts/check-cla.sh
 
   size:
     name: Pull request size

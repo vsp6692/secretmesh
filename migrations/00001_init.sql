@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 -- +goose Up
 
 -- Tenant-owned tables carry organization_id from day one; Row-Level Security

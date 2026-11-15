@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package fake is an in-memory secret provider for tests and local
 // development. Its state lives in process memory only, so the worker must run
 // in the same process as the API (the default). It must never be enabled in

@@ -1,7 +1,7 @@
 # SecretMesh – Implementation Plan
 
 Source: SecretMesh Architecture & Engineering Blueprint v1.0
-Constraints: solo developer · self-hosted first, SaaS after v0.1 · no secret value ever persisted by the application
+Constraints: solo developer · self-hosted first, SaaS after v0.1 · no secret value ever persisted by the application · licensing: source-available, free for personal and internal use, commercial licence for redistribution and third-party hosting (draft, see ADR-0013)
 
 ## Decisions
 
@@ -17,6 +17,7 @@ Full records: [docs/adr](docs/adr/README.md).
 | ADR-006 | OPA embedded as a Go library (`rego` package); policies in `policies/` | Accepted |
 | ADR-007 | Execution journal (intent row written before every cloud call) + reconciler | Accepted |
 | ADR-009 | Environment-scoped role bindings, approval policy, worker re-checks all gates with OPA, per-tenant hash-chained audit with signed checkpoints, local keyring until KMS | Accepted |
+| ADR-0013 | Source-available licence: free for internal use, commercial licence for resale, white-label, embedding and third-party SaaS or hosting; licence-back CLA; no licence keys, telemetry or limits for permitted use | **Proposed (draft; pending legal review and owner approval)** |
 | ADR-008 | Transaction-local tenant context, SECURITY DEFINER pre-tenant lookups, org-bound scoped API tokens, step-up via `max_age=0` | Accepted |
 
 ## ADR-003 detail – staged values in the cloud vault
@@ -54,7 +55,7 @@ Promotion flow:
 | M3 AWS vertical slice ✅ (verified locally against Moto 2026-11-12; **real AWS account not yet tested**, so v0.1.0-alpha is not tagged) | KMS keyring, audit export to S3 Object Lock, break-glass, AssumeRole + ExternalId, `SecretStore` interface + capabilities, discovery, CRUD via ADR-003 staging, reveal (step-up, `no-store`), UI: inventory/detail/approvals/audit | 6 wks | Blueprint §20 Deliverable 3 against an emulator (Moto) + real test account → **v0.1.0-alpha** |
 | M4 Rotation & notifications ✅ (verified locally 2026-11-12; native AWS rotation completion not tested against real AWS) | Scheduler on job queue, plugin contract, AWS-native + manual plugins, reminders/escalation, SMTP + Slack | 5 wks | Worker killed mid-rotation recovers |
 | M5 Azure & GCP ✅ (built 2026-11-15; **verified against in-process fakes only, no live Azure or GCP account yet**) | Adapters via workload identity, shadow-staging, connector contract test suite | 6 wks | Same CRUD/approval E2E on all three clouds |
-| M6 Posture & release | ≥10 posture rules, scoring, CLI, Helm chart, SBOM/Cosign/SLSA, docs, external pentest | 5 wks | **v0.1.0** self-hosted release |
+| M6 Posture & release | ≥10 posture rules, scoring, CLI, Helm chart, SBOM/Cosign/SLSA, docs, external pentest. **Before the first tag:** the licence is adopted (counsel review, owner decisions, boundary tag, final SPDX id: `docs/legal/LICENSING_STRATEGY.md` adoption checklist); the release gate fails drafts. CycloneDX SBOMs and dependency licence checks already run in CI | 5 wks | **v0.1.0** self-hosted release |
 
 Total ≈ 33 weeks (~8 months). Alpha after M3 (~17 weeks).
 
@@ -115,6 +116,10 @@ Discovery now removes shadow staging secrets that no live change request owns (`
 - Tests: worker killed mid-rotation through River (exit criterion) and lost-response recovery without double rotation; failure, timeout and missing-function paths; reminders and escalation recipients; email/Slack delivery, retries, webhook allow-list, redirect and header-injection checks; zero secret values in notifications. AWS rotation calls against Moto (Moto finishes rotations instantly, so completion is covered by the fake provider). Mutation checks on the new gates.
 
 Open: native rotation against a real AWS rotation function; Teams channel; notification preferences per user.
+
+## Licensing (draft, owner decision pending)
+
+A licensing change has been drafted on the branch `licensing/source-available-draft` and is not in effect: a custom source-available licence, a commercial licensing framework, a CLA proposal, a trademark policy, third-party notices and a dependency licence policy, with CI checks (policy, headers, notice drift, SBOM) and a release gate. It changes no architecture, API, schema or behaviour, and adds no licence keys, activation, telemetry or limits for internal use. Open decisions: [docs/legal/LICENSING_STRATEGY.md](docs/legal/LICENSING_STRATEGY.md). Until adoption, published versions remain under Apache-2.0.
 
 ## Post-v0.1: SaaS track
 

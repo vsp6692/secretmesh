@@ -1,0 +1,33 @@
+{
+  "_comment": "Dependency licence policy, enforced by `make license-check` and CI (see docs/legal/LICENSING_STRATEGY.md). SPDX identifiers. Changing this file needs the maintainer's approval (CODEOWNERS).",
+  "allowed": [
+    "0BSD",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BlueOak-1.0.0",
+    "CC-BY-4.0",
+    "CC0-1.0",
+    "ISC",
+    "MIT",
+    "MPL-2.0",
+    "Python-2.0"
+  ],
+  "denied": [
+    "AGPL-3.0-only", "AGPL-3.0-or-later", "GPL-2.0-only", "GPL-2.0-or-later", "GPL-3.0-only", "GPL-3.0-or-later",
+    "LGPL-2.0-only", "LGPL-2.1-only", "LGPL-2.1-or-later", "LGPL-3.0-only", "LGPL-3.0-or-later",
+    "SSPL-1.0", "BUSL-1.1", "Elastic-2.0", "CC-BY-NC-4.0", "CC-BY-NC-SA-4.0", "UNLICENSED", "Unknown"
+  ],
+  "exceptions": [
+    {
+      "ecosystem": "npm",
+      "package": "@img/sharp-libvips-*",
+      "license": "LGPL-3.0-or-later",
+      "reason": "Prebuilt libvips shared libraries that the Next.js image optimiser (sharp) loads dynamically at run time; they are not linked into SecretMesh code. Notice and relinking information are in docs/legal/THIRD_PARTY_LICENSES.md. Removing the exception requires turning off or replacing next/image optimisation."
+    }
+  ],
+  "ignorePackages": [
+    "github.com/secretmesh/secretmesh",
+    "@secretmesh/web"
+  ]
+}

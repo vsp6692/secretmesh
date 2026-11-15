@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 -- +goose Up
 
 -- Row-Level Security and tenant context (ADR-0002, ADR-0008).

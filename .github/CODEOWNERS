@@ -14,3 +14,14 @@
 /internal/execution/ @vsp6692
 /pkg/sensitive/     @vsp6692
 /deployments/       @vsp6692
+
+# Licensing and legal: only the owner may change terms, policy or notices.
+/LICENSE.md         @vsp6692
+/LICENSES/          @vsp6692
+/COMMERCIAL_LICENSE.md @vsp6692
+/LICENSE_FAQ.md     @vsp6692
+/CLA.md             @vsp6692
+/TRADEMARK_POLICY.md @vsp6692
+/docs/legal/        @vsp6692
+/scripts/licenses/  @vsp6692
+/.github/cla-signatories.txt @vsp6692

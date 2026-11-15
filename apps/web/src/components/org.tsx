@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";

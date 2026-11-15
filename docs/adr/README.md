@@ -14,6 +14,7 @@
 | [0010](0010-aws-vertical-slice.md) | AWS vertical slice: connector, staging, KMS keyring, audit export and break-glass | Accepted |
 | [0011](0011-rotation-and-notifications.md) | Rotation engine and notifications | Accepted |
 | [0012](0012-azure-and-gcp-connectors.md) | Azure Key Vault and Google Cloud Secret Manager connectors | Accepted |
+| [0013](0013-source-available-licensing.md) | Source-available licensing with commercial restrictions | Proposed (draft) |
 
 New ADRs: copy the structure below, number sequentially, and never rewrite an accepted ADR. Supersede it with a new one.
 

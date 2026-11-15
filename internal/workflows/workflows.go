@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package workflows runs background jobs on a PostgreSQL-backed queue
 // (River, ADR-0005). Job arguments carry identifiers only, never secret
 // values; workers re-read everything they need from the database.

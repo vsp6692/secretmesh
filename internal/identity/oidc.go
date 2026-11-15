@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package identity authenticates users via OIDC and manages browser sessions.
 package identity
 

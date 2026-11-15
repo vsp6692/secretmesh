@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 -- Local development only: creates the SecretMesh database and its two roles.
 --
 --   secretmesh_migrator  owns the schema; used only by `secretmesh-api migrate`.

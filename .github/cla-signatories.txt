@@ -1,0 +1,8 @@
+# GitHub logins that have accepted CLA.md (one per line, case-insensitive).
+# A maintainer adds a line when a contributor states their agreement.
+# CLA.md is a DRAFT and is not yet enforced (see scripts/check-cla.sh).
+#
+# The project owner. Whether the owner's own earlier contributions belong to the
+# owner personally or to another legal entity is an open question in
+# docs/legal/LICENSING_STRATEGY.md ("Contributor rights").
+vsp6692

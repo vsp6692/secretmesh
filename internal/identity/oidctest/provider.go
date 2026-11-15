@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 // Package oidctest is a minimal in-process OIDC provider for tests. It
 // implements discovery, the authorization endpoint (auto-approving as the
 // configured user), PKCE-checked code exchange and JWKS.

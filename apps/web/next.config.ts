@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-SecretMesh-SAL-1.0-DRAFT
+
 import type { NextConfig } from "next";
 
 // The browser only talks to this origin; /api and /auth are proxied to the Go
