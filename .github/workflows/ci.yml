@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  merge_group:
 
 permissions:
   contents: read
@@ -16,6 +17,7 @@ jobs:
   go:
     name: Go
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:17.11-alpine
@@ -38,6 +40,13 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+      - name: go.mod and go.sum are tidy
+        run: |
+          go mod tidy -diff
+      - name: Formatting
+        run: |
+          unformatted=$(git ls-files -z '*.go' | xargs -0 gofmt -l)
+          if [ -n "$unformatted" ]; then echo "Run gofmt on:"; echo "$unformatted"; exit 1; fi
       - name: Generated code is up to date
         run: |
           go generate ./...
@@ -54,6 +63,7 @@ jobs:
   web:
     name: Web
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: apps/web
@@ -66,7 +76,7 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm run build
@@ -77,6 +87,7 @@ jobs:
   security:
     name: Secret scan & SAST
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -91,3 +102,51 @@ jobs:
         run: |
           python3 -m pip install --quiet semgrep==1.185.0
           semgrep scan --config p/default --config p/golang --config p/typescript --metrics=off --error
+
+  workflows:
+    name: Workflow lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: actionlint
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+      - name: zizmor (GitHub Actions security)
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+        with:
+          advanced-security: false
+          persona: regular
+
+  docker:
+    name: Container images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build API image
+        run: docker build -f deployments/docker/api.Dockerfile -t secretmesh/api:ci .
+      - name: Build web image
+        run: docker build -f deployments/docker/web.Dockerfile -t secretmesh/web:ci .
+
+  # Single required status check for branch protection: passes only when
+  # every job above passed (skipped or cancelled jobs count as failures).
+  ci-ok:
+    name: CI passed
+    if: always()
+    needs: [go, web, security, workflows, docker]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: All required jobs succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: $RESULTS"
+          for r in $RESULTS; do [ "$r" = success ] || exit 1; done

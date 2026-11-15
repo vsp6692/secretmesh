@@ -1,0 +1,80 @@
+name: Pull request checks
+
+# Runs on pull_request (never pull_request_target), so pull requests from forks
+# get a read-only token and no repository secrets.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Block vulnerable or incompatibly licensed dependencies
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: moderate
+          deny-licenses: AGPL-1.0-only, AGPL-1.0-or-later, AGPL-3.0-only, AGPL-3.0-or-later, GPL-1.0-only, GPL-1.0-or-later, GPL-2.0-only, GPL-2.0-or-later, GPL-3.0-only, GPL-3.0-or-later, SSPL-1.0, BUSL-1.1
+
+  sign-off:
+    name: DCO sign-off
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Every commit has a Signed-off-by line from its author
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          fail=0
+          for c in $(git rev-list --no-merges "$BASE..$HEAD"); do
+            author=$(git log -1 --format='%an <%ae>' "$c")
+            if ! git log -1 --format='%B' "$c" | grep -qixF "Signed-off-by: $author"; then
+              echo "::error::Commit $c is missing 'Signed-off-by: $author'"
+              fail=1
+            fi
+          done
+          if [ "$fail" = 1 ]; then
+            echo "Sign off your commits with 'git commit -s' (see CONTRIBUTING.md). To fix existing commits:"
+            echo "  git rebase --signoff origin/main && git push --force-with-lease"
+            exit 1
+          fi
+
+  size:
+    name: Pull request size
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Keep pull requests reviewable
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Generated code and lockfiles do not count.
+          changed=$(git diff --numstat "$BASE...$HEAD" -- . \
+            ':(exclude)**/*.gen.go' ':(exclude)**/package-lock.json' ':(exclude)go.sum' \
+            | awk '{ s += $1 + $2 } END { print s + 0 }')
+          echo "Changed lines: $changed"
+          if [ "$changed" -gt 1500 ]; then
+            echo "::error::This pull request changes $changed lines. Split it into smaller pull requests (limit 1500)."
+            exit 1
+          fi
