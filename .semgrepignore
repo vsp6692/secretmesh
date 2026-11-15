@@ -1,0 +1,2 @@
+# Test-only fake OIDC provider: redirects to the redirect_uri it is given by design.
+internal/identity/oidctest/

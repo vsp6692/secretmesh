@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  IAM role that SecretMesh assumes to manage Secrets Manager secrets in this
+  account (ADR-0010). Deploy one stack per account and region set.
+
+Parameters:
+  SecretMeshPrincipalArn:
+    Type: String
+    Description: ARN of the IAM role SecretMesh runs as (its own workload identity).
+  ExternalId:
+    Type: String
+    Description: The external_id shown when you create the connection in SecretMesh.
+    AllowedPattern: "secretmesh-[A-Za-z0-9-]+"
+  RoleName:
+    Type: String
+    Default: secretmesh-connector
+  SecretNamePrefix:
+    Type: String
+    Default: "*"
+    Description: >
+      Limit management to secrets whose name starts with this prefix (for
+      example "app/*"). Staging secrets under secretmesh-staging/ are always allowed.
+  KmsKeyArns:
+    Type: CommaDelimitedList
+    Default: ""
+    Description: Customer-managed KMS keys that encrypt managed secrets (leave empty for aws/secretsmanager).
+
+Conditions:
+  HasKmsKeys: !Not [!Equals [!Join ["", !Ref KmsKeyArns], ""]]
+
+Resources:
+  ConnectorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref RoleName
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { AWS: !Ref SecretMeshPrincipalArn }
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals: { "sts:ExternalId": !Ref ExternalId }
+      Policies:
+        - PolicyName: secretmesh-secrets
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: Discover
+                Effect: Allow
+                Action: secretsmanager:ListSecrets
+                Resource: "*"
+              - Sid: Manage
+                Effect: Allow
+                Action:
+                  - secretsmanager:DescribeSecret
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:PutSecretValue
+                  - secretsmanager:UpdateSecretVersionStage
+                  - secretsmanager:ListSecretVersionIds
+                  - secretsmanager:CreateSecret
+                  - secretsmanager:DeleteSecret
+                  - secretsmanager:TagResource
+                  # Native rotation (ADR-0011): starts the secret's own rotation function.
+                  - secretsmanager:RotateSecret
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:secretsmanager:*:${AWS::AccountId}:secret:${SecretNamePrefix}"
+                  - !Sub "arn:${AWS::Partition}:secretsmanager:*:${AWS::AccountId}:secret:secretmesh-staging/*"
+              - !If
+                - HasKmsKeys
+                - Sid: Encrypt
+                  Effect: Allow
+                  Action: [kms:Decrypt, kms:GenerateDataKey]
+                  Resource: !Ref KmsKeyArns
+                  Condition:
+                    StringLike: { "kms:ViaService": "secretsmanager.*.amazonaws.com" }
+                - !Ref AWS::NoValue
+
+Outputs:
+  RoleArn:
+    Description: Enter this as role_arn in the SecretMesh connection.
+    Value: !GetAtt ConnectorRole.Arn
