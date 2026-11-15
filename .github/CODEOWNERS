@@ -1,0 +1,16 @@
+# Every change is owned by the maintainer. Import and activate
+# .github/rulesets/main.json in GitHub to enforce required reviews.
+*                   @vsp6692
+
+# Security-critical paths, listed explicitly so they stay owned even if the
+# default rule above changes.
+/.github/           @vsp6692
+/policies/          @vsp6692
+/migrations/        @vsp6692
+/internal/auth/     @vsp6692
+/internal/tenancy/  @vsp6692
+/internal/audit/    @vsp6692
+/internal/keys/     @vsp6692
+/internal/execution/ @vsp6692
+/pkg/sensitive/     @vsp6692
+/deployments/       @vsp6692

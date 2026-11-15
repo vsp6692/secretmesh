@@ -25,6 +25,7 @@ CI runs the same checks, plus integration tests against PostgreSQL, semgrep and 
 
 ## Commits and pull requests
 
-- Keep pull requests focused; describe the security impact of the change if there is one.
+- Sign off every commit with `git commit -s` to certify the [Developer Certificate of Origin](https://developercertificate.org/). The sign-off must match the commit author.
+- Keep pull requests under 1,500 changed lines (generated code and lockfiles excluded); describe the security impact of the change if there is one.
 - Add tests for new behaviour. Security-relevant changes (authentication, authorization, tenancy, audit) need negative tests showing the attack fails.
 - By contributing, you agree that your contributions are licensed under the [Apache License 2.0](LICENSE).
