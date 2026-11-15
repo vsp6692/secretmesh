@@ -103,6 +103,15 @@ type SecretStore interface {
 	Reveal(ctx context.Context, t Target) (sensitive.Value, string, error)
 }
 
+// StagingSweeper is implemented by stores that can find staging resources
+// left behind by crashes or lost responses (ADR-0003: staged values must not
+// outlive their request).
+type StagingSweeper interface {
+	// SweepStaging destroys staging resources created before olderThan whose
+	// request live reports as no longer live. It returns how many it removed.
+	SweepStaging(ctx context.Context, olderThan time.Time, live func(requestID uuid.UUID) (bool, error)) (int, error)
+}
+
 // RotationState is the provider's view of one native rotation attempt.
 type RotationState int
 

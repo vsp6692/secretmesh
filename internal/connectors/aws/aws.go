@@ -407,6 +407,52 @@ func (s *store) List(ctx context.Context, fn func(connectors.SecretInfo) error) 
 	return nil
 }
 
+// SweepStaging deletes shadow staging secrets whose change request is gone or
+// finished. A secret is only touched when it has the staging prefix, the
+// secretmesh:staging tag and a request ID in its name.
+func (s *store) SweepStaging(ctx context.Context, olderThan time.Time, live func(uuid.UUID) (bool, error)) (int, error) {
+	removed := 0
+	pages := sm.NewListSecretsPaginator(s.client, &sm.ListSecretsInput{IncludePlannedDeletion: aws.Bool(false)})
+	for pages.HasMorePages() {
+		page, err := pages.NextPage(ctx)
+		if err != nil {
+			return removed, mapErr(err)
+		}
+		for _, e := range page.SecretList {
+			rest, ok := strings.CutPrefix(aws.ToString(e.Name), StagingPrefix)
+			if !ok || e.CreatedDate == nil || !e.CreatedDate.Before(olderThan) {
+				continue
+			}
+			id, err := uuid.Parse(rest)
+			if err != nil || !hasTag(e.Tags, "secretmesh:staging", "true") {
+				continue
+			}
+			isLive, err := live(id)
+			if err != nil {
+				return removed, err
+			}
+			if isLive {
+				continue
+			}
+			_, err = s.client.DeleteSecret(ctx, &sm.DeleteSecretInput{SecretId: e.ARN, ForceDeleteWithoutRecovery: aws.Bool(true)})
+			if err = mapErr(err); err != nil && !errors.Is(err, connectors.ErrNotFound) {
+				return removed, err
+			}
+			removed++
+		}
+	}
+	return removed, nil
+}
+
+func hasTag(tags []smtypes.Tag, key, value string) bool {
+	for _, t := range tags {
+		if aws.ToString(t.Key) == key && aws.ToString(t.Value) == value {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *store) Versions(ctx context.Context, t connectors.Target) ([]connectors.Version, error) {
 	var out []connectors.Version
 	pages := sm.NewListSecretVersionIdsPaginator(s.client, &sm.ListSecretVersionIdsInput{SecretId: aws.String(t.ProviderRef)})

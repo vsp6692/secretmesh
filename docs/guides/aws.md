@@ -43,7 +43,7 @@ Untagged secrets go to the connection's default environment. Without a default t
 ## 4. What you will see in AWS
 
 - **Pending updates:** a version labelled `SECRETMESH_PENDING`. Consumers keep reading `AWSCURRENT` until approval.
-- **Pending creates:** a secret `secretmesh-staging/<request id>`, deleted once the request completes.
+- **Pending creates:** a secret `secretmesh-staging/<request id>`, deleted once the request completes. If a crash leaves one behind, the periodic sync deletes it an hour after creation, provided no pending, approved or executing request owns it. Only secrets with the `secretmesh:staging` tag are ever deleted this way.
 - **Deletes:** scheduled with a 7-day recovery window.
 - **CloudTrail:** session name `secretmesh-<connection id prefix>`.
 
